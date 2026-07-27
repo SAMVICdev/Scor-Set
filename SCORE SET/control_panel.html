@@ -90,6 +90,10 @@
                         <input type="number" id="player-number" placeholder="N°" min="1" max="99">
                         <input type="text" id="player-name" placeholder="Nom">
                         <input type="text" id="player-position" placeholder="Poste">
+                        <select id="player-role">
+                            <option value="starter">Titulaire</option>
+                            <option value="bench">Remplaçant</option>
+                        </select>
                         <button class="btn btn-success btn-sm" onclick="addPlayer()">+</button>
                     </div>
                     <div class="player-list" id="player-list"></div>
@@ -254,7 +258,9 @@
                             <div class="possession-bar-wrap">
                                 <div class="possession-bar-label" id="possession-display">50% — 50%</div>
                             </div>
-                            <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#aaa;font-size:11px;padding:4px 8px;margin-top:6px;" onclick="resetPossession()" title="Remettre à 50-50">↺ Reset</button>
+                            <button class="btn btn-sm"
+                                style="background:rgba(255,255,255,0.1);color:#aaa;font-size:11px;padding:4px 8px;margin-top:6px;"
+                                onclick="resetPossession()" title="Remettre à 50-50">↺ Reset</button>
                         </div>
                     </div>
                     <div class="stat-input">
@@ -477,6 +483,25 @@
 
                 </div>
             </div>
+            <!-- ---- Fonctionnalité 2 : Rapport de Match ---- -->
+            <div class="option-card" id="option-report">
+                <div class="option-card-header" onclick="toggleOptionCard('report-content')">
+                    <span class="option-card-icon">📋</span>
+                    <span class="option-card-label">Rapport de Match</span>
+                    <span class="option-card-arrow" id="arrow-report-content">▼</span>
+                </div>
+                <div class="option-card-content" id="report-content">
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="generateMatchReport()">📋 Générer le Rapport</button>
+                        <button class="btn btn-success" id="btn-download-pdf" onclick="downloadReportPDF()"
+                            style="display:none;">📄 Télécharger PDF</button>
+                        <button class="btn btn-info" id="btn-download-word" onclick="downloadReportWord()"
+                            style="display:none;">📝 Télécharger Word</button>
+                    </div>
+                    <div class="report-preview" id="report-preview" style="display:none;"></div>
+                </div>
+            </div>
+
             <!-- Espace pour futures fonctionnalités -->
 
         </div>

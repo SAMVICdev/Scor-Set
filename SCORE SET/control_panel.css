@@ -1357,3 +1357,312 @@ body {
     letter-spacing: 2px;
     text-align: center;
 }
+
+/* ============================================================
+   GESTION EFFECTIFS — TITULAIRES / REMPLAÇANTS
+   ============================================================ */
+.player-group-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 8px 4px;
+    margin-top: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #aaa;
+}
+
+.role-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 1px;
+}
+
+.badge-starter {
+    background: rgba(0, 255, 136, 0.15);
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 136, 0.4);
+}
+
+.badge-bench {
+    background: rgba(100, 149, 237, 0.15);
+    color: #6495ed;
+    border: 1px solid rgba(100, 149, 237, 0.4);
+}
+
+.role-toggle-btn {
+    font-size: 10px;
+    padding: 3px 7px;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   RAPPORT DE MATCH — Prévisualisation dans la boîte d'options
+   ============================================================ */
+.report-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.report-preview {
+    background: white;
+    color: #111;
+    border-radius: 10px;
+    padding: 20px;
+    max-height: 480px;
+    overflow-y: auto;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    border: 2px solid rgba(155, 89, 182, 0.3);
+}
+
+/* Header */
+.report-doc .report-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 3px solid #1a1a2e;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+}
+
+.report-logo {
+    font-size: 36px;
+}
+
+.report-title {
+    font-size: 20px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #1a1a2e;
+}
+
+.report-date,
+.report-phase {
+    font-size: 12px;
+    color: #666;
+    margin-top: 3px;
+}
+
+/* Score block */
+.report-score-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: #1a1a2e;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.report-team {
+    flex: 1;
+    text-align: center;
+}
+
+.report-team-name {
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.report-score-center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.report-score-num {
+    font-size: 36px;
+    font-weight: 900;
+    color: white;
+}
+
+.report-score-sep {
+    font-size: 24px;
+    color: #aaa;
+}
+
+/* Sections */
+.report-section {
+    margin-bottom: 20px;
+}
+
+.report-section-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #1a1a2e;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+/* Stats table */
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stats-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.stat-label {
+    text-align: center;
+    font-weight: 600;
+    color: #555;
+    font-size: 12px;
+}
+
+.stat-val {
+    text-align: center;
+    font-weight: 800;
+    font-size: 16px;
+    width: 28%;
+}
+
+/* Events table */
+.events-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.events-table th {
+    background: #1a1a2e;
+    color: white;
+    padding: 7px 9px;
+    text-align: left;
+    font-size: 11px;
+}
+
+.events-table td {
+    padding: 6px 9px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.event-goal {
+    background: #fffde7;
+}
+
+.event-yellow td:first-child {
+    border-left: 4px solid #ffd700;
+}
+
+.event-red td:first-child {
+    border-left: 4px solid #ff4444;
+}
+
+.event-sub td:first-child {
+    border-left: 4px solid #00cc77;
+}
+
+.event-var td:first-child {
+    border-left: 4px solid #6495ed;
+}
+
+.ev-time {
+    font-weight: 700;
+    font-size: 11px;
+    color: #555;
+    white-space: nowrap;
+}
+
+.ev-icon {
+    font-size: 14px;
+    width: 26px;
+}
+
+.ev-team {
+    font-size: 11px;
+    color: #777;
+    white-space: nowrap;
+}
+
+.rep-out {
+    color: #ff4444;
+    font-weight: 700;
+}
+
+.rep-in {
+    color: #00aa55;
+    font-weight: 700;
+}
+
+.no-events {
+    text-align: center;
+    color: #aaa;
+    font-style: italic;
+    padding: 14px;
+}
+
+/* Compositions */
+.report-rosters {
+    display: flex;
+    gap: 20px;
+}
+
+.roster-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.roster-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.roster-table th {
+    background: #f0f0f0;
+    padding: 5px 7px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #555;
+}
+
+.roster-table td {
+    padding: 4px 7px;
+    border-bottom: 1px solid #eee;
+}
+
+.role-tit {
+    color: #007744;
+    font-weight: 700;
+}
+
+.role-rem {
+    color: #4455aa;
+    font-weight: 700;
+}
+
+.no-data {
+    color: #aaa;
+    font-style: italic;
+    font-size: 11px;
+}
+
+/* Footer */
+.report-footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}

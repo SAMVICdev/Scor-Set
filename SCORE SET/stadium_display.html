@@ -53,8 +53,12 @@
     <div class="central-zone" role="region" aria-label="Zone centrale - Composition des équipes">
         <div class="line-up">
             <div class="line-up-title">⚽ Composition</div>
-            <div class="team-lineup" id="lineup1" aria-label="Composition équipe domicile"></div>
-            <div class="team-lineup" id="lineup2" aria-label="Composition équipe extérieur"></div>
+            <div class="lineup-section-label">Titulaires</div>
+            <div class="team-lineup" id="lineup1" aria-label="Titulaires équipe domicile"></div>
+            <div class="team-lineup" id="lineup2" aria-label="Titulaires équipe extérieur"></div>
+            <div class="lineup-section-label bench-label">Remplaçants</div>
+            <div class="team-lineup bench-lineup" id="bench1" aria-label="Remplaçants équipe domicile"></div>
+            <div class="team-lineup bench-lineup" id="bench2" aria-label="Remplaçants équipe extérieur"></div>
         </div>
 
         <div class="line-up">
@@ -168,22 +172,44 @@
     </div>
 
     <!-- Substitution Modal -->
-    <div class="modal sub" id="sub-modal" role="dialog" aria-label="Remplacement" aria-live="assertive">
-        <div class="modal-icon" aria-hidden="true">🔄</div>
-        <div class="modal-title">Remplacement</div>
-        <div class="modal-player">
-            <img class="modal-player-photo" id="sub-out-photo" src="" alt="Photo du joueur sortant">
-            <div class="modal-player-info">
-                <div class="modal-player-name" id="sub-out-name">Out</div>
-                <div class="modal-player-number" id="sub-out-number">10</div>
-            </div>
+    <div class="sub-modal" id="sub-modal" role="dialog" aria-label="Remplacement" aria-live="assertive">
+        <div class="sub-modal-header">
+            <span class="sub-modal-icon">🔄</span>
+            <span class="sub-modal-title">REMPLACEMENT</span>
+            <span class="sub-modal-team" id="sub-modal-team"></span>
         </div>
-        <div style="font-size: 30px;" aria-hidden="true">⬇️</div>
-        <div class="modal-player">
-            <img class="modal-player-photo" id="sub-in-photo" src="" alt="Photo du joueur entrant">
-            <div class="modal-player-info">
-                <div class="modal-player-name" id="sub-in-name">In</div>
-                <div class="modal-player-number" id="sub-in-number">11</div>
+        <div class="sub-modal-body">
+            <!-- Joueur sortant -->
+            <div class="sub-player sub-player-out">
+                <div class="sub-arrow sub-arrow-out">
+                    <span class="sub-arrow-icon">↑</span>
+                </div>
+                <div class="sub-player-card out">
+                    <img class="sub-player-photo" id="sub-out-photo" src="" alt="Joueur sortant">
+                    <div class="sub-player-number out" id="sub-out-number">10</div>
+                    <div class="sub-player-name" id="sub-out-name">OUT</div>
+                    <div class="sub-player-label out">SORT</div>
+                </div>
+            </div>
+
+            <!-- Séparateur central -->
+            <div class="sub-divider">
+                <div class="sub-divider-line"></div>
+                <div class="sub-divider-icon">⇄</div>
+                <div class="sub-divider-line"></div>
+            </div>
+
+            <!-- Joueur entrant -->
+            <div class="sub-player sub-player-in">
+                <div class="sub-player-card in">
+                    <img class="sub-player-photo" id="sub-in-photo" src="" alt="Joueur entrant">
+                    <div class="sub-player-number in" id="sub-in-number">11</div>
+                    <div class="sub-player-name" id="sub-in-name">IN</div>
+                    <div class="sub-player-label in">ENTRE</div>
+                </div>
+                <div class="sub-arrow sub-arrow-in">
+                    <span class="sub-arrow-icon">↓</span>
+                </div>
             </div>
         </div>
     </div>
@@ -207,11 +233,11 @@
         <img class="media-content" id="media-image" style="display: none;" alt="Média affiché">
         <video class="media-content" id="media-video" style="display: none;" autoplay muted loop></video>
         <iframe class="media-content" id="media-iframe" style="display: none;" src="" allowfullscreen
-            allow="autoplay; encrypted-media; picture-in-picture"
-            frameborder="0"></iframe>
+            allow="autoplay; encrypted-media; picture-in-picture" frameborder="0"></iframe>
         <div class="media-video-controls" id="media-video-controls" style="display: none;">
             <button class="media-control-btn" onclick="videoRewind(event)" aria-label="Reculer la vidéo">⏪ -10s</button>
-            <button class="media-control-btn" onclick="videoForward(event)" aria-label="Avancer la vidéo">⏩ +10s</button>
+            <button class="media-control-btn" onclick="videoForward(event)" aria-label="Avancer la vidéo">⏩
+                +10s</button>
         </div>
     </div>
 

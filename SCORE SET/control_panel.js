@@ -326,27 +326,66 @@ function selectTeam(team) {
 
 /**
  * Charge la liste des joueurs de l'équipe sélectionnée
+/**
+ * Charge la liste des joueurs groupée par rôle (Titulaires / Remplaçants)
  */
 function loadPlayerList() {
     const players = selectedTeam === 1 ? state.team1.players : state.team2.players;
     const list = document.getElementById('player-list');
 
-    list.innerHTML = players.map((p, index) => `
-        <div class="player-item">
-            <img class="player-photo-thumb" src="${p.photo || ''}" alt="">
-            <div class="player-info">
-                <div class="player-name">${p.name}</div>
-                <div class="player-details">N°${p.number} - ${p.position}</div>
-            </div>
-            <div class="player-actions">
-                <button class="btn btn-primary btn-sm photo-upload-btn">
-                    📷
-                    <input type="file" accept="image/*" onchange="uploadPhoto(${index}, this)">
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="removePlayer(${index})">✕</button>
-            </div>
-        </div>
-    `).join('');
+    const starters = players.filter(p => p.starter !== false);
+    const bench = players.filter(p => p.starter === false);
+
+    const renderGroup = (group, label, badgeClass) => {
+        if (group.length === 0) return '';
+        return `
+            <div class="player-group-title">${label}</div>
+            ${group.map((p) => {
+            const index = players.indexOf(p);
+            const isStarter = p.starter !== false;
+            return `
+                <div class="player-item">
+                    <img class="player-photo-thumb" src="${p.photo || ''}" alt="">
+                    <div class="player-info">
+                        <div class="player-name">
+                            ${p.name}
+                            <span class="role-badge ${isStarter ? 'badge-starter' : 'badge-bench'}">
+                                ${isStarter ? 'TIT' : 'REM'}
+                            </span>
+                        </div>
+                        <div class="player-details">N°${p.number} · ${p.position}</div>
+                    </div>
+                    <div class="player-actions">
+                        <button class="btn btn-sm role-toggle-btn ${isStarter ? 'btn-warning' : 'btn-success'}"
+                            onclick="togglePlayerRole(${index})" title="${isStarter ? 'Mettre remplaçant' : 'Mettre titulaire'}">
+                            ${isStarter ? '⬇ REM' : '⬆ TIT'}
+                        </button>
+                        <button class="btn btn-primary btn-sm photo-upload-btn">
+                            📷
+                            <input type="file" accept="image/*" onchange="uploadPhoto(${index}, this)">
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="removePlayer(${index})">✕</button>
+                    </div>
+                </div>`;
+        }).join('')}
+        `;
+    };
+
+    list.innerHTML =
+        renderGroup(starters, '🟢 Titulaires', 'badge-starter') +
+        renderGroup(bench, '🔵 Remplaçants', 'badge-bench');
+}
+
+/**
+ * Bascule le rôle d'un joueur entre titulaire et remplaçant
+ * @param {number} index - Index du joueur dans la liste
+ */
+function togglePlayerRole(index) {
+    const players = selectedTeam === 1 ? state.team1.players : state.team2.players;
+    players[index].starter = players[index].starter === false ? true : false;
+    saveState();
+    loadPlayerList();
+    updatePlayerSelects();
 }
 
 /**
@@ -363,12 +402,12 @@ function removePlayer(index) {
 
 /**
  * Ajoute un joueur à l'équipe sélectionnée avec validation
- * Valide le numéro et le nom avant ajout
  */
 function addPlayer() {
     const number = document.getElementById('player-number').value;
     const name = document.getElementById('player-name').value;
     const position = document.getElementById('player-position').value;
+    const role = document.getElementById('player-role').value;
 
     if (!validatePlayerNumber(parseInt(number))) {
         alert('Numéro de joueur invalide (1-99)');
@@ -385,14 +424,14 @@ function addPlayer() {
         number: parseInt(number),
         name: name,
         position: position || 'N/A',
-        photo: ''
+        photo: '',
+        starter: role !== 'bench'   // true = titulaire, false = remplaçant
     });
 
     saveState();
     loadPlayerList();
     updatePlayerSelects();
 
-    // Clear inputs
     document.getElementById('player-number').value = '';
     document.getElementById('player-name').value = '';
     document.getElementById('player-position').value = '';
@@ -610,6 +649,10 @@ function recordGoal() {
 // ============================================================
 /**
  * Met à jour les sélecteurs de joueurs pour l'enregistrement des buts
+/**
+ * Met à jour les sélecteurs de joueurs pour l'enregistrement des buts
+ * sub-out → uniquement les titulaires (sur le terrain)
+ * sub-in  → uniquement les remplaçants (sur le banc)
  */
 function updatePlayerSelects() {
     const selects = ['goal-scorer', 'goal-assist', 'yellow-player', 'red-player', 'sub-out', 'sub-in'];
@@ -625,9 +668,26 @@ function updatePlayerSelects() {
                     : document.getElementById('sub-team');
 
         const team = parseInt(teamSelect.value);
-        const players = team === 1 ? state.team1.players : state.team2.players;
+        const allPlayers = team === 1 ? state.team1.players : state.team2.players;
 
-        select.innerHTML = '<option value="">-- Joueur --</option>' +
+        // Filtrer selon le sélecteur
+        let players;
+        if (selectId === 'sub-out') {
+            // Uniquement les titulaires (starter !== false)
+            players = allPlayers.filter(p => p.starter !== false);
+        } else if (selectId === 'sub-in') {
+            // Uniquement les remplaçants (starter === false)
+            players = allPlayers.filter(p => p.starter === false);
+        } else {
+            // Tous les joueurs pour les autres sélecteurs
+            players = allPlayers;
+        }
+
+        const placeholder = selectId === 'sub-out' ? '-- Titulaire sort --'
+            : selectId === 'sub-in' ? '-- Remplaçant entre --'
+                : '-- Joueur --';
+
+        select.innerHTML = `<option value="">${placeholder}</option>` +
             players.map(p => `<option value="${p.id}">${p.number} - ${p.name}</option>`).join('');
     });
 }
@@ -645,7 +705,7 @@ function showYellowCard() {
     state.events.push({
         type: 'yellow',
         team: team,
-        player: playerId,
+        player: parseInt(playerId),
         time: state.timer,
         handled: false
     });
@@ -666,7 +726,7 @@ function showRedCard() {
     state.events.push({
         type: 'red',
         team: team,
-        player: playerId,
+        player: parseInt(playerId),
         time: state.timer,
         handled: false
     });
@@ -677,13 +737,20 @@ function showRedCard() {
 
 function showSubstitution() {
     const team = parseInt(document.getElementById('sub-team').value);
-    const outId = document.getElementById('sub-out').value;
-    const inId = document.getElementById('sub-in').value;
+    const outId = parseInt(document.getElementById('sub-out').value);
+    const inId = parseInt(document.getElementById('sub-in').value);
 
     if (!outId || !inId) {
         alert('Veuillez sélectionner les deux joueurs');
         return;
     }
+
+    // Inverser les rôles : le sortant devient remplaçant, l'entrant devient titulaire
+    const players = team === 1 ? state.team1.players : state.team2.players;
+    const playerOut = players.find(p => p.id == outId);
+    const playerIn = players.find(p => p.id == inId);
+    if (playerOut) playerOut.starter = false;
+    if (playerIn) playerIn.starter = true;
 
     state.events.push({
         type: 'sub',
@@ -695,6 +762,8 @@ function showSubstitution() {
 
     computePossession();
     saveState();
+    loadPlayerList();
+    updatePlayerSelects();
 }
 
 function showVAR() {
@@ -1606,4 +1675,332 @@ function sendYoutubeToDisplay() {
     closeOptionsBox();
 
     log('Vidéo YouTube envoyée au stadium display:', ytSelectedVideo.title);
+}
+
+// ============================================================
+// RAPPORT DE MATCH - Génération, prévisualisation, téléchargement
+// ============================================================
+
+/**
+ * Formate un temps en secondes en MM:SS
+ * @param {number} seconds
+ * @returns {string}
+ */
+function formatMatchTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Construit le HTML du rapport de match depuis state
+ * @returns {string} HTML complet du rapport
+ */
+function buildReportHTML() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    // Phase lisible
+    const phaseLabels = {
+        'first-half': '1ère Mi-Temps',
+        'ht': 'Mi-Temps',
+        'second-half': '2ème Mi-Temps',
+        'et': 'Prolongations',
+        'ft': 'Fin du Match'
+    };
+    const phase = phaseLabels[state.phase] || state.phase;
+
+    // Possession
+    const poss = (state.stats.possession || '50-50').split('-');
+    const poss1 = poss[0] || '50';
+    const poss2 = poss[1] || '50';
+
+    // Événements triés par temps
+    const events = [...(state.events || [])].sort((a, b) => (a.time || 0) - (b.time || 0));
+
+    const getPlayer = (team, id) => {
+        const players = team === 1 ? state.team1.players : state.team2.players;
+        return players.find(p => p.id == id) || null;
+    };
+
+    // Construire les lignes d'événements
+    const eventRows = events.map(ev => {
+        const timeLabel = ev.time !== undefined ? formatMatchTime(ev.time) : '--:--';
+        let icon = '', desc = '', teamName = '';
+
+        switch (ev.type) {
+            case 'goal': {
+                const scorer = getPlayer(ev.team, ev.scorer);
+                const assist = ev.assist ? getPlayer(ev.team, ev.assist) : null;
+                teamName = ev.team === 1 ? state.team1.name : state.team2.name;
+                icon = '⚽';
+                desc = scorer
+                    ? `But — ${scorer.name} (N°${scorer.number})${assist ? ` <small>Passe décisive : ${assist.name}</small>` : ''}`
+                    : 'But';
+                break;
+            }
+            case 'yellow': {
+                const p = getPlayer(ev.team, ev.player);
+                teamName = ev.team === 1 ? state.team1.name : state.team2.name;
+                icon = '🟨';
+                desc = p ? `Carton Jaune — ${p.name} (N°${p.number})` : 'Carton Jaune';
+                break;
+            }
+            case 'red': {
+                const p = getPlayer(ev.team, ev.player);
+                teamName = ev.team === 1 ? state.team1.name : state.team2.name;
+                icon = '🟥';
+                desc = p ? `Carton Rouge — ${p.name} (N°${p.number})` : 'Carton Rouge';
+                break;
+            }
+            case 'sub': {
+                const out = getPlayer(ev.team, ev.out);
+                const inp = getPlayer(ev.team, ev.in);
+                teamName = ev.team === 1 ? state.team1.name : state.team2.name;
+                icon = '🔄';
+                desc = `Remplacement — <span class="rep-out">↑ ${out ? out.name : '?'}</span> / <span class="rep-in">↓ ${inp ? inp.name : '?'}</span>`;
+                break;
+            }
+            case 'var':
+                icon = '📺';
+                desc = 'VAR Review';
+                teamName = '';
+                break;
+            default:
+                icon = '•';
+                desc = ev.type;
+        }
+
+        return `
+            <tr class="event-row event-${ev.type}">
+                <td class="ev-time">${timeLabel}</td>
+                <td class="ev-icon">${icon}</td>
+                <td class="ev-team">${teamName}</td>
+                <td class="ev-desc">${desc}</td>
+            </tr>`;
+    }).join('') || `<tr><td colspan="4" class="no-events">Aucun événement enregistré</td></tr>`;
+
+    // Titulaires et remplaçants
+    const renderRoster = (players) => {
+        const starters = players.filter(p => p.starter !== false);
+        const bench = players.filter(p => p.starter === false);
+        const rows = [
+            ...starters.map(p => `<tr><td>${p.number}</td><td>${p.name}</td><td>${p.position || ''}</td><td class="role-tit">Titulaire</td></tr>`),
+            ...bench.map(p => `<tr><td>${p.number}</td><td>${p.name}</td><td>${p.position || ''}</td><td class="role-rem">Remplaçant</td></tr>`)
+        ];
+        return rows.length > 0
+            ? `<table class="roster-table"><tr><th>N°</th><th>Nom</th><th>Poste</th><th>Rôle</th></tr>${rows.join('')}</table>`
+            : '<p class="no-data">Aucun joueur enregistré</p>';
+    };
+
+    return `
+        <div class="report-doc">
+            <div class="report-header">
+                <div class="report-logo">🏟️</div>
+                <div class="report-title-block">
+                    <h1 class="report-title">RAPPORT DE MATCH</h1>
+                    <p class="report-date">${dateStr} — ${timeStr}</p>
+                    <p class="report-phase">${phase}</p>
+                </div>
+            </div>
+
+            <!-- Résultat -->
+            <div class="report-score-block">
+                <div class="report-team" style="color:${state.team1.color}">
+                    <span class="report-team-name">${state.team1.name}</span>
+                </div>
+                <div class="report-score-center">
+                    <span class="report-score-num">${state.score1}</span>
+                    <span class="report-score-sep">—</span>
+                    <span class="report-score-num">${state.score2}</span>
+                </div>
+                <div class="report-team" style="color:${state.team2.color}">
+                    <span class="report-team-name">${state.team2.name}</span>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="report-section">
+                <h2 class="report-section-title">📊 Statistiques</h2>
+                <table class="stats-table">
+                    <tr>
+                        <td class="stat-val t1">${poss1}%</td>
+                        <td class="stat-label">Possession</td>
+                        <td class="stat-val t2">${poss2}%</td>
+                    </tr>
+                    <tr>
+                        <td class="stat-val t1">${state.stats.shots[0]}</td>
+                        <td class="stat-label">Tirs</td>
+                        <td class="stat-val t2">${state.stats.shots[1]}</td>
+                    </tr>
+                    <tr>
+                        <td class="stat-val t1">${state.stats.corners[0]}</td>
+                        <td class="stat-label">Corners</td>
+                        <td class="stat-val t2">${state.stats.corners[1]}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Événements -->
+            <div class="report-section">
+                <h2 class="report-section-title">⚡ Événements du Match</h2>
+                <table class="events-table">
+                    <thead>
+                        <tr><th>Temps</th><th></th><th>Équipe</th><th>Événement</th></tr>
+                    </thead>
+                    <tbody>${eventRows}</tbody>
+                </table>
+            </div>
+
+            <!-- Compositions -->
+            <div class="report-section report-rosters">
+                <div class="roster-col">
+                    <h2 class="report-section-title" style="color:${state.team1.color}">👥 ${state.team1.name}</h2>
+                    ${renderRoster(state.team1.players)}
+                </div>
+                <div class="roster-col">
+                    <h2 class="report-section-title" style="color:${state.team2.color}">👥 ${state.team2.name}</h2>
+                    ${renderRoster(state.team2.players)}
+                </div>
+            </div>
+
+            <div class="report-footer">
+                Généré par Stadium Live Régie v2.1 — ${dateStr}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Génère et affiche le rapport dans la prévisualisation
+ */
+function generateMatchReport() {
+    const preview = document.getElementById('report-preview');
+    const btnPDF = document.getElementById('btn-download-pdf');
+    const btnWord = document.getElementById('btn-download-word');
+
+    preview.innerHTML = buildReportHTML();
+    preview.style.display = 'block';
+    btnPDF.style.display = 'inline-block';
+    btnWord.style.display = 'inline-block';
+
+    preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Télécharge le rapport en PDF via une fenêtre d'impression
+ */
+function downloadReportPDF() {
+    const reportHTML = buildReportHTML();
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Match — ${state.team1.name} vs ${state.team2.name}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #111; padding: 20px; }
+        .report-doc { max-width: 800px; margin: 0 auto; }
+        .report-header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 20px; }
+        .report-logo { font-size: 40px; }
+        .report-title { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; color: #1a1a2e; }
+        .report-date, .report-phase { font-size: 13px; color: #555; margin-top: 4px; }
+        .report-score-block { display: flex; align-items: center; justify-content: center; gap: 24px; background: #1a1a2e; color: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .report-team { flex: 1; text-align: center; }
+        .report-team-name { font-size: 20px; font-weight: 800; text-transform: uppercase; }
+        .report-score-center { display: flex; align-items: center; gap: 12px; }
+        .report-score-num { font-size: 48px; font-weight: 900; }
+        .report-score-sep { font-size: 32px; color: #aaa; }
+        .report-section { margin-bottom: 24px; }
+        .report-section-title { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #1a1a2e; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 12px; }
+        .stats-table { width: 100%; border-collapse: collapse; }
+        .stats-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .stat-label { text-align: center; font-weight: 600; color: #555; }
+        .stat-val { text-align: center; font-weight: 800; font-size: 18px; width: 25%; }
+        .events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .events-table th { background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; }
+        .events-table td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+        .event-goal { background: #fffde7; }
+        .event-yellow td:first-child { border-left: 4px solid #ffd700; }
+        .event-red td:first-child { border-left: 4px solid #ff4444; }
+        .event-sub td:first-child { border-left: 4px solid #00cc77; }
+        .ev-time { font-weight: 700; font-size: 12px; color: #555; white-space: nowrap; }
+        .ev-icon { font-size: 16px; width: 30px; }
+        .rep-out { color: #ff4444; font-weight: 700; }
+        .rep-in  { color: #00aa55; font-weight: 700; }
+        .no-events { text-align: center; color: #aaa; font-style: italic; padding: 16px; }
+        .report-rosters { display: flex; gap: 24px; }
+        .roster-col { flex: 1; }
+        .roster-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .roster-table th { background: #f5f5f5; padding: 6px 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        .roster-table td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+        .role-tit { color: #00aa55; font-weight: 700; }
+        .role-rem { color: #6495ed; font-weight: 700; }
+        .no-data { color: #aaa; font-style: italic; font-size: 12px; }
+        .report-footer { margin-top: 32px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+        @media print {
+            body { padding: 10px; }
+            .report-score-block { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>${reportHTML}</body>
+</html>`);
+    win.document.close();
+    setTimeout(() => { win.print(); }, 500);
+}
+
+/**
+ * Télécharge le rapport en fichier Word (.doc)
+ */
+function downloadReportWord() {
+    const reportHTML = buildReportHTML();
+    const now = new Date();
+    const dateFile = now.toISOString().slice(0, 10);
+    const filename = `rapport_${state.team1.name}_vs_${state.team2.name}_${dateFile}.doc`.replace(/\s+/g, '_');
+
+    const wordHTML = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Match</title>
+    <!--[if gte mso 9]>
+    <xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml>
+    <![endif]-->
+    <style>
+        body { font-family: 'Calibri', Arial, sans-serif; margin: 40px; color: #111; }
+        h1 { font-size: 24pt; text-transform: uppercase; letter-spacing: 3px; color: #1a1a2e; }
+        h2 { font-size: 14pt; text-transform: uppercase; letter-spacing: 2px; color: #1a1a2e; border-bottom: 2px solid #ccc; padding-bottom: 4px; margin: 20px 0 10px; }
+        .report-score-block { background: #1a1a2e; color: white; padding: 20px; margin: 20px 0; text-align: center; }
+        .report-score-num { font-size: 36pt; font-weight: bold; }
+        .report-team-name { font-size: 18pt; font-weight: bold; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11pt; }
+        th { background: #1a1a2e; color: white; padding: 8px; text-align: left; }
+        td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
+        .role-tit { color: #007744; font-weight: bold; }
+        .role-rem { color: #4455aa; font-weight: bold; }
+        .rep-out { color: #cc0000; font-weight: bold; }
+        .rep-in  { color: #007744; font-weight: bold; }
+        .ev-time { font-weight: bold; color: #555; }
+        .report-footer { margin-top: 40px; text-align: center; font-size: 9pt; color: #aaa; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>${reportHTML}</body>
+</html>`;
+
+    const blob = new Blob(['\ufeff', wordHTML], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }

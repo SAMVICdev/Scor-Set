@@ -254,8 +254,8 @@ function updateDisplay(skipMediaUpdate = false) {
     document.getElementById('stats-cards2').textContent = `🟨${team2Cards.yellow} 🟥${team2Cards.red}`;
 
     // Compositions d'équipe
-    updateLineup('lineup1', state.team1.players, state.team1.color, 1);
-    updateLineup('lineup2', state.team2.players, state.team2.color, 2);
+    updateLineup('lineup1', 'bench1', state.team1.players, state.team1.color, 1);
+    updateLineup('lineup2', 'bench2', state.team2.players, state.team2.color, 2);
 
     // Bandeau défilant
     updateTicker();
@@ -413,27 +413,56 @@ function formatTime(seconds) {
  * @param {string} color - Couleur de l'équipe
  * @param {number} team - Numéro de l'équipe (1 ou 2)
  */
-function updateLineup(elementId, players, color, team) {
-    const element = document.getElementById(elementId);
-    element.innerHTML = players.map(p => {
-        const cards = getPlayerCards(p.id, team);
-        const yellowCards = cards.filter(c => c.type === 'yellow');
-        const redCards = cards.filter(c => c.type === 'red');
+/**
+ * Met à jour la composition d'une équipe en séparant titulaires et remplaçants
+ * @param {string} starterId - ID de l'élément titulaires (ex: 'lineup1')
+ * @param {string} benchId - ID de l'élément remplaçants (ex: 'bench1')
+ * @param {Array} players - Liste complète des joueurs
+ * @param {string} color - Couleur de l'équipe
+ * @param {number} team - Numéro de l'équipe (1 ou 2)
+ */
+function updateLineup(starterId, benchId, players, color, team) {
+    const starterEl = document.getElementById(starterId);
+    const benchEl = document.getElementById(benchId);
 
-        // Générer les icônes de cartons avec l'heure
+    const starters = players.filter(p => p.starter !== false);
+    const bench = players.filter(p => p.starter === false);
+
+    const renderPlayer = (p, isBench) => {
+        const cards = getPlayerCards(p.id, team);
         const cardIcons = cards.map(card => {
-            const cardEmoji = card.type === 'yellow' ? '🟨' : '🟥';
+            const emoji = card.type === 'yellow' ? '🟨' : '🟥';
             const timeStr = formatTime(card.time);
-            return `<span class="card-icon" title="${card.type === 'yellow' ? 'Carton jaune' : 'Carton rouge'} à ${timeStr}">${cardEmoji}${timeStr}</span>`;
+            return `<span class="card-icon" title="${card.type === 'yellow' ? 'Carton jaune' : 'Carton rouge'} à ${timeStr}">${emoji}${timeStr}</span>`;
         }).join(' ');
 
+        const photo = p.photo
+            ? `<img class="lineup-player-photo" src="${p.photo}" alt="">`
+            : `<span class="lineup-player-avatar" style="background:${color}">${p.number}</span>`;
+
         return `
-            <div class="lineup-player" style="border-color: ${color}">
-                <span class="num">${p.number}</span> 👤 ${p.name}
+            <div class="lineup-player ${isBench ? 'lineup-bench-player' : ''}" style="border-color:${color}${isBench ? '66' : ''}">
+                ${photo}
+                <span class="lineup-player-info">
+                    <span class="lineup-player-name">${p.name}</span>
+                    <span class="lineup-player-pos">${p.position || ''}</span>
+                </span>
+                <span class="lineup-player-num" style="color:${color}">${p.number}</span>
                 ${cardIcons ? `<span class="player-cards">${cardIcons}</span>` : ''}
-            </div>
-        `;
-    }).join('');
+            </div>`;
+    };
+
+    if (starterEl) {
+        starterEl.innerHTML = starters.length > 0
+            ? starters.map(p => renderPlayer(p, false)).join('')
+            : `<div class="lineup-empty">Aucun titulaire</div>`;
+    }
+
+    if (benchEl) {
+        benchEl.innerHTML = bench.length > 0
+            ? bench.map(p => renderPlayer(p, true)).join('')
+            : `<div class="lineup-empty bench-empty">Aucun remplaçant</div>`;
+    }
 }
 
 /**
@@ -1108,7 +1137,8 @@ function handleEvents() {
  */
 function findPlayer(team, playerId) {
     const players = team === 1 ? state.team1.players : state.team2.players;
-    return players.find(p => p.id === playerId);
+    // Comparaison souple : int ou string selon la source
+    return players.find(p => p.id == playerId);
 }
 
 /**
@@ -1190,18 +1220,39 @@ function showSubstitution(event) {
     const playerIn = findPlayer(event.team, event.in);
 
     if (playerOut && playerIn) {
-        document.getElementById('sub-out-photo').src = playerOut.photo || '';
-        document.getElementById('sub-out-name').textContent = playerOut.name;
+        // Nom de l'équipe
+        const teamName = event.team === 1 ? state.team1.name : state.team2.name;
+        const teamEl = document.getElementById('sub-modal-team');
+        if (teamEl) teamEl.textContent = teamName;
+
+        // Joueur sortant (rouge)
+        const outPhoto = document.getElementById('sub-out-photo');
+        if (outPhoto) {
+            outPhoto.src = playerOut.photo || '';
+            outPhoto.style.display = playerOut.photo ? 'block' : 'none';
+        }
+        document.getElementById('sub-out-name').textContent = playerOut.name.toUpperCase();
         document.getElementById('sub-out-number').textContent = playerOut.number;
 
-        document.getElementById('sub-in-photo').src = playerIn.photo || '';
-        document.getElementById('sub-in-name').textContent = playerIn.name;
+        // Joueur entrant (vert)
+        const inPhoto = document.getElementById('sub-in-photo');
+        if (inPhoto) {
+            inPhoto.src = playerIn.photo || '';
+            inPhoto.style.display = playerIn.photo ? 'block' : 'none';
+        }
+        document.getElementById('sub-in-name').textContent = playerIn.name.toUpperCase();
         document.getElementById('sub-in-number').textContent = playerIn.number;
 
+        // Afficher avec animation
+        modal.classList.remove('hiding');
         modal.classList.add('active');
 
+        // Masquer avec animation de sortie
         setTimeout(() => {
-            modal.classList.remove('active');
+            modal.classList.add('hiding');
+            setTimeout(() => {
+                modal.classList.remove('active', 'hiding');
+            }, 350);
         }, CONSTANTS.SUBSTITUTION_DURATION);
     }
 }
