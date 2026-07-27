@@ -1,0 +1,1526 @@
+// ============================================================
+// CONSTANTES - Limites système et configurations
+// ============================================================
+const CONSTANTS = {
+    LOCAL_STORAGE_MAX_SIZE: 4000000   // Taille maximale localStorage (4MB)
+};
+
+// ============================================================
+// MODE DÉVELOPPEMENT - Logs activés uniquement en dev
+// ============================================================
+const DEV_MODE = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+
+/**
+ * Fonction de log qui affiche uniquement en mode développement
+ * @param {...any} args - Arguments à logger
+ */
+function log(...args) {
+    if (DEV_MODE) {
+        console.log(...args);
+    }
+}
+
+/**
+ * Test si localStorage est disponible et fonctionne
+ * @returns {boolean} True si localStorage est disponible
+ */
+function testLocalStorage() {
+    try {
+        localStorage.setItem('test', 'test');
+        localStorage.removeItem('test');
+        return true;
+    } catch (e) {
+        log('localStorage non disponible:', e);
+        return false;
+    }
+}
+
+// ============================================================
+// ÉTAT PAR DÉFAUT - Configuration initiale du match
+// ============================================================
+const defaultState = {
+    team1: {
+        name: 'HOME',
+        color: '#e94560',
+        logo: '',                       // Logo de l'équipe (base64 ou IndexedDB ID)
+        players: []
+    },
+    team2: {
+        name: 'AWAY',
+        color: '#00ff88',
+        logo: '',                       // Logo de l'équipe (base64 ou IndexedDB ID)
+        players: []
+    },
+    score1: 0,                          // Score équipe domicile
+    score2: 0,                          // Score équipe extérieur
+    timer: 0,                           // Chronomètre en secondes
+    addedTime: 0,                       // Temps additionnel en minutes
+    isRunning: false,                   // État du chronomètre
+    phase: 'first-half',                // Phase du match
+    theme: 'dark',                      // Thème d'affichage
+    stats: {
+        possession: '50-50',           // Possession de balle
+        shots: [0, 0],                  // Tirs cadrés
+        corners: [0, 0]                 // Corners
+    },
+    ticker: ['🏟️ Bienvenue au Stadium Live Régie v2.1', '⚽ Match en direct', '📺 Suivez le match en temps réel'],
+    events: [],                         // Liste des événements
+    media: {
+        type: 'none',                   // Type de média
+        source: '',                     // Source du média
+        title: '',                      // Titre du média
+        duration: 10                    // Durée d'affichage
+    },
+    scoreColor: '#e94560',               // Couleur unique des scores
+    timerColor: '#ffffff'                // Couleur unique du chronomètre
+};
+
+// ============================================================
+// CHARGEMENT DE L'ÉTAT - Récupération depuis localStorage
+// ============================================================
+let state = JSON.parse(localStorage.getItem('stadium_match_state')) || JSON.parse(JSON.stringify(defaultState));
+let selectedTeam = 1;                   // Équipe sélectionnée (1 ou 2)
+let timerInterval = null;               // Intervalle du chronomètre
+
+// Test de disponibilité de localStorage
+if (!testLocalStorage()) {
+    alert('Attention: localStorage n\'est pas disponible. Certaines fonctionnalités ne marcheront pas.');
+}
+
+/**
+ * Sauvegarde l'état dans localStorage avec gestion d'erreur
+ * Affiche une alerte si l'espace est insuffisant
+ */
+function saveState() {
+    try {
+        localStorage.setItem('stadium_match_state', JSON.stringify(state));
+    } catch (e) {
+        alert('Erreur de sauvegarde : Espace insuffisant dans localStorage. Veuillez réduire la taille des données.');
+    }
+}
+
+// ============================================================
+// FONCTIONS DE VALIDATION - Vérification des entrées utilisateur
+// ============================================================
+/**
+ * Valide le nom d'une équipe
+ * @param {string} name - Nom de l'équipe à valider
+ * @returns {boolean} True si valide (1-50 caractères)
+ */
+function validateTeamName(name) {
+    return name && name.trim().length > 0 && name.trim().length <= 50;
+}
+
+/**
+ * Valide le numéro d'un joueur
+ * @param {number} number - Numéro du joueur à valider
+ * @returns {boolean} True si valide (1-99)
+ */
+function validatePlayerNumber(number) {
+    return number >= 1 && number <= 99;
+}
+
+/**
+ * Valide le nom d'un joueur
+ * @param {string} name - Nom du joueur à valider
+ * @returns {boolean} True si valide (1-50 caractères)
+ */
+function validatePlayerName(name) {
+    return name && name.trim().length > 0 && name.trim().length <= 50;
+}
+
+/**
+ * Valide une couleur hexadécimale
+ * @param {string} color - Couleur au format #RRGGBB
+ * @returns {boolean} True si valide
+ */
+function validateColorHex(color) {
+    return /^#[0-9A-F]{6}$/i.test(color);
+}
+
+// ============================================================
+// INITIALISATION - Chargement des configurations
+// ============================================================
+/**
+ * Initialise l'application en chargeant toutes les configurations
+ */
+function init() {
+    loadTeamConfig();
+    loadThemeConfig();
+    loadPlayerList();
+    updateTimerDisplay();
+    updateScoreDisplay();
+    updateStatsDisplay();
+    loadTickerItems();
+    updatePlayerSelects();
+}
+
+// ============================================================
+// CONFIGURATION DU THÈME - Gestion des thèmes d'affichage
+// ============================================================
+function loadThemeConfig() {
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+        themeSelect.value = state.theme || 'dark';
+        updateThemePreview();
+    }
+}
+
+function setTheme(theme) {
+    state.theme = theme;
+    saveState();
+    updateThemePreview();
+}
+
+function updateThemePreview() {
+    const themeOptions = document.querySelectorAll('.theme-option');
+    themeOptions.forEach(option => {
+        option.classList.remove('active');
+        if (option.classList.contains(state.theme || 'dark')) {
+            option.classList.add('active');
+        }
+    });
+
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+        themeSelect.value = state.theme || 'dark';
+    }
+}
+
+// Team Configuration
+function loadTeamConfig() {
+    document.getElementById('team1-name').value = state.team1.name;
+    document.getElementById('team1-color').value = state.team1.color;
+    document.getElementById('team2-name').value = state.team2.name;
+    document.getElementById('team2-color').value = state.team2.color;
+
+    // Synchroniser les color pickers avec l'état sauvegardé
+    const scoreColor = state.scoreColor || '#e94560';
+    const timerColor = state.timerColor || '#ffffff';
+    document.getElementById('score-color').value = scoreColor;
+    document.getElementById('timer-color').value = timerColor;
+    document.getElementById('timer-display').style.color = timerColor;
+
+    document.getElementById('score-team1-name').textContent = state.team1.name;
+    document.getElementById('score-team1-name').style.color = state.team1.color;
+    document.getElementById('score1-display').style.color = scoreColor;
+
+    document.getElementById('score-team2-name').textContent = state.team2.name;
+    document.getElementById('score-team2-name').style.color = state.team2.color;
+    document.getElementById('score2-display').style.color = scoreColor;
+
+    // Mettre à jour les aperçus des logos
+    updateLogoPreview(1);
+    updateLogoPreview(2);
+}
+
+/**
+ * Sauvegarde la configuration des équipes avec validation
+ * Valide les noms et couleurs avant sauvegarde
+ */
+function saveTeamConfig() {
+    const team1Name = document.getElementById('team1-name').value;
+    const team1Color = document.getElementById('team1-color').value;
+    const team2Name = document.getElementById('team2-name').value;
+    const team2Color = document.getElementById('team2-color').value;
+
+    if (!validateTeamName(team1Name)) {
+        alert('Nom de l\'équipe domicile invalide (1-50 caractères)');
+        return;
+    }
+    if (!validateColorHex(team1Color)) {
+        alert('Couleur de l\'équipe domicile invalide (format #RRGGBB)');
+        return;
+    }
+    if (!validateTeamName(team2Name)) {
+        alert('Nom de l\'équipe extérieur invalide (1-50 caractères)');
+        return;
+    }
+    if (!validateColorHex(team2Color)) {
+        alert('Couleur de l\'équipe extérieur invalide (format #RRGGBB)');
+        return;
+    }
+
+    state.team1.name = team1Name;
+    state.team1.color = team1Color;
+    state.team2.name = team2Name;
+    state.team2.color = team2Color;
+
+    saveState();
+    loadTeamConfig();
+}
+
+/**
+ * Gère l'upload du logo d'une équipe
+ * @param {number} team - 1 pour domicile, 2 pour extérieur
+ */
+async function handleTeamLogoUpload(team) {
+    const fileInput = document.getElementById(`team${team}-logo`);
+    const file = fileInput.files[0];
+
+    if (!file) return;
+
+    // Vérifier si c'est une image
+    if (!file.type.startsWith('image/')) {
+        alert('Veuillez sélectionner une image valide.');
+        fileInput.value = '';
+        return;
+    }
+
+    console.log(`Upload logo pour équipe ${team}:`, file.name, file.size);
+
+    try {
+        // Convertir en base64 (synchrone, plus fiable pour l'affichage immédiat)
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target.result;
+            console.log(`Base64 length pour équipe ${team}:`, base64.length);
+
+            // Stocker directement en base64
+            if (team === 1) {
+                state.team1.logo = base64;
+            } else {
+                state.team2.logo = base64;
+            }
+
+            console.log(`Logo sauvegardé en base64 pour équipe ${team}`);
+
+            saveState();
+            updateLogoPreview(team);
+        };
+        reader.readAsDataURL(file);
+    } catch (error) {
+        console.error('Erreur lors de l\'upload du logo:', error);
+        alert('Erreur lors de l\'upload du logo: ' + error.message);
+    }
+}
+
+/**
+ * Met à jour l'aperçu du logo
+ * @param {number} team - 1 pour domicile, 2 pour extérieur
+ */
+function updateLogoPreview(team) {
+    const preview = document.getElementById(`team${team}-logo-preview`);
+    const logo = team === 1 ? state.team1.logo : state.team2.logo;
+
+    console.log(`updateLogoPreview pour équipe ${team}:`, logo ? 'Logo présent' : 'Pas de logo');
+
+    if (logo) {
+        preview.innerHTML = `<img src="${logo}" alt="Logo équipe" style="width: 100%; height: 100%; object-fit: contain;">`;
+        preview.classList.remove('empty');
+    } else {
+        preview.innerHTML = '<span>Pas de logo</span>';
+        preview.classList.add('empty');
+    }
+}
+
+// ============================================================
+// GESTION DES EFFECTIFS - Ajout et suppression de joueurs
+// ============================================================
+function selectTeam(team) {
+    selectedTeam = team;
+    document.getElementById('tab1').classList.toggle('active', team === 1);
+    document.getElementById('tab2').classList.toggle('active', team === 2);
+    loadPlayerList();
+}
+
+/**
+ * Charge la liste des joueurs de l'équipe sélectionnée
+ */
+function loadPlayerList() {
+    const players = selectedTeam === 1 ? state.team1.players : state.team2.players;
+    const list = document.getElementById('player-list');
+
+    list.innerHTML = players.map((p, index) => `
+        <div class="player-item">
+            <img class="player-photo-thumb" src="${p.photo || ''}" alt="">
+            <div class="player-info">
+                <div class="player-name">${p.name}</div>
+                <div class="player-details">N°${p.number} - ${p.position}</div>
+            </div>
+            <div class="player-actions">
+                <button class="btn btn-primary btn-sm photo-upload-btn">
+                    📷
+                    <input type="file" accept="image/*" onchange="uploadPhoto(${index}, this)">
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="removePlayer(${index})">✕</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Supprime un joueur de l'équipe sélectionnée
+ * @param {number} index - Index du joueur à supprimer
+ */
+function removePlayer(index) {
+    const players = selectedTeam === 1 ? state.team1.players : state.team2.players;
+    players.splice(index, 1);
+    saveState();
+    loadPlayerList();
+    updatePlayerSelects();
+}
+
+/**
+ * Ajoute un joueur à l'équipe sélectionnée avec validation
+ * Valide le numéro et le nom avant ajout
+ */
+function addPlayer() {
+    const number = document.getElementById('player-number').value;
+    const name = document.getElementById('player-name').value;
+    const position = document.getElementById('player-position').value;
+
+    if (!validatePlayerNumber(parseInt(number))) {
+        alert('Numéro de joueur invalide (1-99)');
+        return;
+    }
+    if (!validatePlayerName(name)) {
+        alert('Nom de joueur invalide (1-50 caractères)');
+        return;
+    }
+
+    const players = selectedTeam === 1 ? state.team1.players : state.team2.players;
+    players.push({
+        id: Date.now(),
+        number: parseInt(number),
+        name: name,
+        position: position || 'N/A',
+        photo: ''
+    });
+
+    saveState();
+    loadPlayerList();
+    updatePlayerSelects();
+
+    // Clear inputs
+    document.getElementById('player-number').value = '';
+    document.getElementById('player-name').value = '';
+    document.getElementById('player-position').value = '';
+}
+
+/**
+ * Upload et sauvegarde la photo d'un joueur
+ * Convertit l'image en base64 et la sauvegarde dans l'état
+ * @param {number} index - Index du joueur dans la liste
+ * @param {HTMLInputElement} input - Input file contenant l'image
+ */
+function uploadPhoto(index, input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    try {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const players = selectedTeam === 1 ? state.team1.players : state.team2.players;
+                players[index].photo = e.target.result;
+                saveState();
+                loadPlayerList();
+            } catch (e) {
+                alert('Erreur lors de la sauvegarde de la photo : ' + e.message);
+            }
+        };
+        reader.onerror = function () {
+            alert('Erreur lors de la lecture du fichier');
+        };
+        reader.readAsDataURL(file);
+    } catch (e) {
+        alert('Erreur lors de l\'upload de la photo : ' + e.message);
+    }
+}
+
+// ============================================================
+// CHRONOMÈTRE - Gestion du temps de match
+// ============================================================
+function updateTimerDisplay() {
+    const minutes = Math.floor(state.timer / 60);
+    const seconds = state.timer % 60;
+    document.getElementById('timer-display').textContent =
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    document.getElementById('added-time').value = state.addedTime;
+
+    // Appliquer la couleur du chronomètre
+    const timerColor = state.timerColor || '#ffffff';
+    document.getElementById('timer-display').style.color = timerColor;
+}
+
+/**
+ * Démarre le chronomètre
+ */
+function startTimer() {
+    if (state.isRunning) return;
+    state.isRunning = true;
+    saveState();
+
+    timerInterval = setInterval(() => {
+        state.timer++;
+        saveState();
+        updateTimerDisplay();
+    }, 1000);
+}
+
+/**
+ * Met en pause le chronomètre
+ */
+function pauseTimer() {
+    state.isRunning = false;
+    saveState();
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+/**
+ * Réinitialise le chronomètre à 0
+ */
+function resetTimer() {
+    pauseTimer();
+    state.timer = 0;
+    state.addedTime = 0;
+    saveState();
+    updateTimerDisplay();
+}
+
+/**
+ * Ajuste le chronomètre d'un certain nombre de minutes
+ * @param {number} minutes - Minutes à ajouter (positif ou négatif)
+ */
+function adjustTime(minutes) {
+    state.timer += minutes * 60;
+    if (state.timer < 0) state.timer = 0;
+    saveState();
+    updateTimerDisplay();
+}
+
+/**
+ * Sauvegarde le temps additionnel et met à jour l'affichage
+ */
+function saveAddedTime() {
+    state.addedTime = parseInt(document.getElementById('added-time').value) || 0;
+    saveState();
+    updateTimerDisplay();
+}
+
+/**
+ * Change la phase du match et gère le timer automatiquement
+ * @param {string} phase - 'first-half', 'ht', 'second-half', 'et', 'ft'
+ */
+function setPhase(phase) {
+    state.phase = phase;
+
+    // Arrêter le timer automatiquement à mi-temps et fin de match
+    if (phase === 'ht' || phase === 'ft') {
+        pauseTimer();
+    }
+
+    // Réinitialiser le timer pour la 2ème période
+    if (phase === 'second-half') {
+        state.timer = 0;
+        state.addedTime = 0;
+        updateTimerDisplay();
+    }
+
+    // Réinitialiser le timer pour les prolongations
+    if (phase === 'et') {
+        state.timer = 0;
+        state.addedTime = 0;
+        updateTimerDisplay();
+    }
+
+    saveState();
+}
+
+// ============================================================
+// SCORE - Gestion du score du match
+// ============================================================
+function updateScoreDisplay() {
+    document.getElementById('score1-display').textContent = state.score1;
+    document.getElementById('score2-display').textContent = state.score2;
+
+    // Appliquer la couleur des scores
+    const scoreColor = state.scoreColor || '#e94560';
+    document.getElementById('score1-display').style.color = scoreColor;
+    document.getElementById('score2-display').style.color = scoreColor;
+}
+
+/**
+ * Ajoute un but à l'équipe spécifiée
+ * Bloque l'ajout si le match est terminé (phase 'ft')
+ * @param {number} team - 1 pour domicile, 2 pour extérieur
+ */
+function addGoal(team) {
+    if (state.phase === 'ft') {
+        alert('Le match est terminé. Impossible d\'ajouter un but.');
+        return;
+    }
+    if (team === 1) state.score1++;
+    else state.score2++;
+    saveState();
+    updateScoreDisplay();
+}
+
+/**
+ * Retire un but à l'équipe spécifiée
+ * Bloque la suppression si le match est terminé (phase 'ft')
+ * @param {number} team - 1 pour domicile, 2 pour extérieur
+ */
+function removeGoal(team) {
+    if (state.phase === 'ft') {
+        alert('Le match est terminé. Impossible de modifier le score.');
+        return;
+    }
+    if (team === 1 && state.score1 > 0) state.score1--;
+    else if (team === 2 && state.score2 > 0) state.score2--;
+    saveState();
+    updateScoreDisplay();
+}
+
+// ============================================================
+// ENREGISTREMENT DES BUTS - Gestion détaillée des buts
+// ============================================================
+function recordGoal() {
+    const team = parseInt(document.getElementById('goal-team').value);
+    const scorerId = document.getElementById('goal-scorer').value;
+    const assistId = document.getElementById('goal-assist').value;
+
+    if (!scorerId) {
+        alert('Veuillez sélectionner un buteur');
+        return;
+    }
+
+    if (team === 1) state.score1++;
+    else state.score2++;
+
+    state.events.push({
+        type: 'goal',
+        team: team,
+        scorer: scorerId,
+        assist: assistId || null,
+        handled: false
+    });
+
+    saveState();
+    updateScoreDisplay();
+}
+
+// ============================================================
+// SÉLECTEURS DE JOUEURS - Mise à jour des listes déroulantes
+// ============================================================
+/**
+ * Met à jour les sélecteurs de joueurs pour l'enregistrement des buts
+ */
+function updatePlayerSelects() {
+    const selects = ['goal-scorer', 'goal-assist', 'yellow-player', 'red-player', 'sub-out', 'sub-in'];
+
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        const teamSelect = selectId === 'goal-scorer' || selectId === 'goal-assist'
+            ? document.getElementById('goal-team')
+            : selectId === 'yellow-player'
+                ? document.getElementById('yellow-team')
+                : selectId === 'red-player'
+                    ? document.getElementById('red-team')
+                    : document.getElementById('sub-team');
+
+        const team = parseInt(teamSelect.value);
+        const players = team === 1 ? state.team1.players : state.team2.players;
+
+        select.innerHTML = '<option value="">-- Joueur --</option>' +
+            players.map(p => `<option value="${p.id}">${p.number} - ${p.name}</option>`).join('');
+    });
+}
+
+// Discipline
+function showYellowCard() {
+    const team = parseInt(document.getElementById('yellow-team').value);
+    const playerId = document.getElementById('yellow-player').value;
+
+    if (!playerId) {
+        alert('Veuillez sélectionner un joueur');
+        return;
+    }
+
+    state.events.push({
+        type: 'yellow',
+        team: team,
+        player: playerId,
+        time: state.timer,
+        handled: false
+    });
+
+    saveState();
+}
+
+function showRedCard() {
+    const team = parseInt(document.getElementById('red-team').value);
+    const playerId = document.getElementById('red-player').value;
+
+    if (!playerId) {
+        alert('Veuillez sélectionner un joueur');
+        return;
+    }
+
+    state.events.push({
+        type: 'red',
+        team: team,
+        player: playerId,
+        time: state.timer,
+        handled: false
+    });
+
+    saveState();
+}
+
+function showSubstitution() {
+    const team = parseInt(document.getElementById('sub-team').value);
+    const outId = document.getElementById('sub-out').value;
+    const inId = document.getElementById('sub-in').value;
+
+    if (!outId || !inId) {
+        alert('Veuillez sélectionner les deux joueurs');
+        return;
+    }
+
+    state.events.push({
+        type: 'sub',
+        team: team,
+        out: outId,
+        in: inId,
+        handled: false
+    });
+
+    saveState();
+}
+
+function showVAR() {
+    state.events.push({
+        type: 'var',
+        handled: false
+    });
+
+    saveState();
+}
+
+// ============================================================
+// STATISTIQUES - Gestion des stats du match
+// ============================================================
+function updateStatsDisplay() {
+    const possession = state.stats.possession.replace('%', '').split('-');
+    if (possession.length === 2) {
+        document.getElementById('possession').value = possession[0];
+    } else {
+        document.getElementById('possession').value = 50;
+    }
+    document.getElementById('shots1').value = state.stats.shots[0];
+    document.getElementById('shots2').value = state.stats.shots[1];
+    document.getElementById('corners1').value = state.stats.corners[0];
+    document.getElementById('corners2').value = state.stats.corners[1];
+}
+
+/**
+ * Sauvegarde les statistiques du match
+ */
+function saveStats() {
+    const possession1 = parseInt(document.getElementById('possession').value) || 50;
+    const possession2 = 100 - possession1;
+    state.stats.possession = `${possession1}-${possession2}`;
+    state.stats.shots = [
+        parseInt(document.getElementById('shots1').value) || 0,
+        parseInt(document.getElementById('shots2').value) || 0
+    ];
+    state.stats.corners = [
+        parseInt(document.getElementById('corners1').value) || 0,
+        parseInt(document.getElementById('corners2').value) || 0
+    ];
+    saveState();
+}
+
+// Media Functions
+function updateMediaType() {
+    const type = document.getElementById('media-type').value;
+    const durationInput = document.getElementById('media-duration');
+
+    if (type === 'video') {
+        durationInput.disabled = true;
+        durationInput.value = 0;
+    } else {
+        durationInput.disabled = false;
+        durationInput.value = 10;
+    }
+}
+
+function uploadMediaFile() {
+    document.getElementById('media-file-input').click();
+}
+
+// ============================================================
+// INDEXEDDB - Stockage de fichiers volumineux
+// ============================================================
+const DB_NAME = 'StadiumMediaDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'media';
+
+/**
+ * Initialise IndexedDB pour stocker des fichiers volumineux
+ * @returns {Promise<IDBDatabase>} Base de données IndexedDB
+ */
+function initIndexedDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+    });
+}
+
+/**
+ * Sauvegarde un fichier dans IndexedDB
+ * @param {string} id - Identifiant unique du fichier
+ * @param {Blob} blob - Données du fichier
+ * @param {string} type - Type MIME du fichier
+ * @returns {Promise<void>}
+ */
+async function saveMediaToIndexedDB(id, blob, type) {
+    try {
+        const db = await initIndexedDB();
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+
+        const mediaItem = {
+            id: id,
+            blob: blob,
+            type: type,
+            timestamp: Date.now()
+        };
+
+        store.put(mediaItem);
+
+        return new Promise((resolve, reject) => {
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+    } catch (e) {
+        log('Erreur IndexedDB:', e);
+        throw e;
+    }
+}
+
+/**
+ * Récupère un fichier depuis IndexedDB
+ * @param {string} id - Identifiant du fichier
+ * @returns {Promise<Blob|null>} Données du fichier ou null
+ */
+async function getMediaFromIndexedDB(id) {
+    try {
+        const db = await initIndexedDB();
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(id);
+
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result ? request.result.blob : null);
+            request.onerror = () => reject(request.error);
+        });
+    } catch (e) {
+        log('Erreur IndexedDB:', e);
+        return null;
+    }
+}
+
+/**
+ * Supprime un fichier de IndexedDB
+ * @param {string} id - Identifiant du fichier
+ * @returns {Promise<void>}
+ */
+async function deleteMediaFromIndexedDB(id) {
+    try {
+        const db = await initIndexedDB();
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        store.delete(id);
+
+        return new Promise((resolve, reject) => {
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+        });
+    } catch (e) {
+        log('Erreur IndexedDB:', e);
+    }
+}
+
+/**
+ * Gère l'upload d'un fichier média (image ou vidéo)
+ * Stocke les fichiers volumineux dans IndexedDB
+ * Valide le type du fichier avant traitement
+ * @param {HTMLInputElement} input - Input file contenant le média
+ */
+async function handleMediaUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Validation du type de fichier
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
+    const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
+
+    if (!validImageTypes.includes(file.type) && !validVideoTypes.includes(file.type)) {
+        alert(`⚠️ Type de fichier non supporté: ${file.type}\n\nTypes supportés:\nImages: JPEG, PNG, GIF, WebP, BMP, SVG\nVidéos: MP4, WebM, Ogg, MOV, AVI`);
+        input.value = ''; // Reset input
+        return;
+    }
+
+    // Afficher la taille du fichier
+    const fileSizeMB = file.size / (1024 * 1024);
+    log(`Upload fichier: ${file.name} (${fileSizeMB.toFixed(2)}MB)`);
+
+    try {
+        // Générer un ID unique pour le fichier
+        const mediaId = 'media_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        // Sauvegarder dans IndexedDB
+        await saveMediaToIndexedDB(mediaId, file, file.type);
+
+        // Stocker l'ID IndexedDB dans le champ source
+        document.getElementById('media-source').value = `indexeddb:${mediaId}`;
+
+        // Update preview
+        const preview = document.getElementById('media-preview');
+        const type = file.type.startsWith('video') ? 'video' : 'image';
+
+        // Créer une URL temporaire pour l'aperçu (streaming optimisé)
+        const tempUrl = URL.createObjectURL(file);
+
+        if (type === 'image') {
+            preview.innerHTML = `<img src="${tempUrl}" alt="Preview" style="max-width: 100%; max-height: 200px; object-fit: contain;">`;
+            document.getElementById('media-type').value = 'image';
+        } else {
+            // Pour les vidéos, ajouter des attributs de streaming optimisé
+            preview.innerHTML = `
+                <video src="${tempUrl}" controls 
+                       preload="metadata" 
+                       style="max-width: 100%; max-height: 200px;"
+                       onloadedmetadata="this.currentTime=0">
+                    Votre navigateur ne supporte pas la lecture vidéo.
+                </video>`;
+            document.getElementById('media-type').value = 'video';
+        }
+
+        updateMediaType();
+
+        log('Fichier sauvegardé dans IndexedDB avec succès');
+        log('Taille du fichier:', fileSizeMB.toFixed(2), 'MB');
+    } catch (e) {
+        alert('Erreur lors du traitement du média : ' + e.message);
+        log('Erreur upload:', e);
+    }
+}
+
+/**
+ * Affiche un média sur l'écran stadium display
+ * Supporte IndexedDB pour les fichiers volumineux
+ * Pour les vidéos, préfère les URLs externes aux uploads
+ */
+function showMedia() {
+    const type = document.getElementById('media-type').value;
+    const source = document.getElementById('media-source').value;
+    const title = document.getElementById('media-title-input').value;
+    const duration = parseInt(document.getElementById('media-duration').value) || 10;
+    const animationIn = document.getElementById('media-animation-in').value;
+    const animationOut = document.getElementById('media-animation-out').value;
+    const repeat = document.getElementById('media-repeat').value === 'true';
+    const scroll = document.getElementById('media-scroll').value;
+    const videoMode = document.querySelector('input[name="video-mode"]:checked')?.value || 'auto';
+
+    if (type === 'none' || !source) {
+        alert('Veuillez sélectionner un type de média et une source');
+        return;
+    }
+
+    // Pour YouTube, convertir en URL embed si nécessaire
+    let finalSource = source;
+    if (type === 'video' && (source.includes('youtube.com') || source.includes('youtu.be'))) {
+        let youtubeId = '';
+        if (source.includes('youtu.be/')) {
+            youtubeId = source.split('youtu.be/')[1].split('?')[0];
+        } else if (source.includes('youtube.com/watch')) {
+            youtubeId = source.split('v=')[1].split('&')[0];
+        } else if (source.includes('youtube.com/embed/')) {
+            youtubeId = source.split('youtube.com/embed/')[1];
+        }
+
+        if (youtubeId) {
+            const confirmEmbed = confirm('URL YouTube détectée. Convertir en format embed pour meilleure compatibilité?');
+            if (confirmEmbed) {
+                finalSource = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}`;
+            }
+        }
+    }
+
+    // Vérifier si c'est un fichier IndexedDB
+    const isIndexedDB = finalSource.startsWith('indexeddb:');
+
+    if (isIndexedDB) {
+        // Pour IndexedDB, on stocke seulement l'ID dans localStorage
+        // Les données sont stockées dans IndexedDB
+        log('Utilisation de IndexedDB pour le média');
+    } else if (source.startsWith('data:')) {
+        // Pour base64, vérifier la taille
+        const base64Size = Math.ceil((source.length * 3) / 4) / (1024 * 1024);
+        if (base64Size > 2) {
+            alert(`⚠️ Données base64 volumineuses (${base64Size.toFixed(2)}MB)\n\nRecommandation: Utilisez IndexedDB (upload de fichier) ou une URL externe.`);
+            if (!confirm('Continuer quand même?')) {
+                return;
+            }
+        }
+    }
+
+    state.media = {
+        type: type,
+        source: finalSource,
+        title: title,
+        duration: type === 'image' ? duration : 0,
+        animationIn: animationIn,
+        animationOut: animationOut,
+        repeat: repeat,
+        scroll: scroll,
+        videoMode: videoMode
+    };
+
+    saveState();
+
+    // Afficher le bouton son si c'est une vidéo
+    const btnUnmute = document.getElementById('btn-unmute');
+    if (type === 'video') {
+        btnUnmute.style.display = 'inline-block';
+        btnUnmute.textContent = '🔇 Son coupé';
+        btnUnmute.classList.remove('btn-success');
+        btnUnmute.classList.add('btn-warning');
+        // Réinitialiser l'état mute côté display
+        localStorage.setItem('stadium_video_cmd', JSON.stringify({ cmd: 'mute', ts: Date.now() }));
+    } else {
+        btnUnmute.style.display = 'none';
+    }
+}
+
+function hideMedia() {
+    state.media = {
+        type: 'none',
+        source: '',
+        title: '',
+        duration: 10
+    };
+    saveState();
+    // Cacher le bouton son
+    document.getElementById('btn-unmute').style.display = 'none';
+}
+
+// ============================================================
+// BANDEAU DÉFILANT - Gestion des messages ticker
+// ============================================================
+function loadTickerItems() {
+    const container = document.getElementById('ticker-items');
+    container.innerHTML = state.ticker.map((item, index) => {
+        const text = typeof item === 'object' ? item.text : item;
+        const color = typeof item === 'object' ? item.color : '#00ff88';
+        return `
+        <div class="ticker-item">
+            <span style="color: ${color}">${text}</span>
+            <button class="btn btn-danger btn-sm" onclick="removeTickerItem(${index})">✕</button>
+        </div>
+    `;
+    }).join('');
+}
+
+/**
+ * Ajoute un message au bandeau défilant
+ */
+function addTickerItem() {
+    const input = document.getElementById('ticker-input');
+    const colorInput = document.getElementById('ticker-color');
+    const text = input.value.trim();
+    const color = colorInput.value;
+
+    if (!text) return;
+
+    state.ticker.push({ text: text, color: color });
+    saveState();
+    loadTickerItems();
+    input.value = '';
+}
+
+/**
+ * Supprime un message du bandeau défilant
+ * @param {number} index - Index du message à supprimer
+ */
+function removeTickerItem(index) {
+    state.ticker.splice(index, 1);
+    saveState();
+    loadTickerItems();
+}
+
+// ============================================================
+// RÉINITIALISATION - Remise à zéro du match
+// ============================================================
+function resetMatch() {
+    if (!confirm('Êtes-vous sûr de vouloir réinitialiser le match ?')) return;
+
+    state = JSON.parse(JSON.stringify(defaultState));
+    state.team1.name = document.getElementById('team1-name').value;
+    state.team1.color = document.getElementById('team1-color').value;
+    state.team2.name = document.getElementById('team2-name').value;
+    state.team2.color = document.getElementById('team2-color').value;
+    state.theme = document.getElementById('theme-select') ? document.getElementById('theme-select').value : 'dark';
+
+    saveState();
+    init();
+}
+
+// ============================================================
+// CONTRÔLE VIDÉO MANUEL - Commandes envoyées au stadium display
+// ============================================================
+
+/**
+ * Affiche ou cache la section de contrôle manuel selon le mode choisi
+ */
+function onVideoModeChange() {
+    const mode = document.querySelector('input[name="video-mode"]:checked').value;
+    const controls = document.getElementById('video-manual-controls');
+    controls.style.display = mode === 'manual' ? 'block' : 'none';
+}
+
+/**
+ * Envoie une commande vidéo au stadium_display via localStorage
+ * @param {string} cmd - La commande ('seek-back-10', 'seek-fwd-10', 'seek-back-30', 'seek-fwd-30', 'play', 'pause', 'seek-to')
+ * @param {number|null} value - Valeur optionnelle (ex: position seek)
+ */
+function sendVideoCmd(cmd, value = null) {
+    const command = { cmd, value, ts: Date.now() };
+    localStorage.setItem('stadium_video_cmd', JSON.stringify(command));
+}
+
+/**
+ * Bascule play/pause de la vidéo
+ */
+function toggleVideoPlayPause() {
+    const btn = document.getElementById('vc-playpause');
+    const isPlaying = btn.textContent.includes('Pause');
+    if (isPlaying) {
+        sendVideoCmd('pause');
+        btn.textContent = '▶ Play';
+        btn.classList.remove('btn-warning');
+        btn.classList.add('btn-success');
+    } else {
+        sendVideoCmd('play');
+        btn.textContent = '⏸ Pause';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-warning');
+    }
+}
+
+/**
+ * Active ou coupe le son de la vidéo en cours
+ */
+function toggleMute() {
+    const btn = document.getElementById('btn-unmute');
+    const isMuted = btn.textContent.includes('coupé');
+    if (isMuted) {
+        sendVideoCmd('unmute');
+        btn.textContent = '🔊 Son activé';
+        btn.classList.remove('btn-warning');
+        btn.classList.add('btn-success');
+    } else {
+        sendVideoCmd('mute');
+        btn.textContent = '🔇 Son coupé';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-warning');
+    }
+}
+
+/**
+ * Envoie une commande de seek à une position précise (en %)
+ * @param {number} percent - Position en pourcentage (0-100)
+ */
+function seekVideo(percent) {
+    sendVideoCmd('seek-to', parseFloat(percent));
+}
+
+/**
+ * Met à jour l'affichage du temps vidéo (reçu depuis stadium_display)
+ * @param {number} current - Temps actuel en secondes
+ * @param {number} duration - Durée totale en secondes
+ */
+function updateVideoTimeDisplay(current, duration) {
+    const fmt = (s) => {
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    };
+    document.getElementById('vc-current').textContent = fmt(current);
+    document.getElementById('vc-duration').textContent = fmt(duration);
+    const bar = document.getElementById('vc-seek');
+    if (duration > 0 && document.activeElement !== bar) {
+        bar.value = (current / duration) * 100;
+    }
+}
+
+// Écouter les mises à jour de temps depuis le stadium_display
+window.addEventListener('storage', (e) => {
+    if (e.key === 'stadium_video_time' && e.newValue) {
+        const data = JSON.parse(e.newValue);
+        updateVideoTimeDisplay(data.current, data.duration);
+
+        // Sync bouton play/pause
+        const btn = document.getElementById('vc-playpause');
+        if (btn) {
+            if (data.paused) {
+                btn.textContent = '▶ Play';
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-success');
+            } else {
+                btn.textContent = '⏸ Pause';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-warning');
+            }
+        }
+    }
+});
+
+// Listen for storage changes (sync with other tabs)
+window.addEventListener('storage', (e) => {
+    if (e.key === 'stadium_match_state') {
+        state = JSON.parse(e.newValue);
+        init();
+    }
+});
+
+// Écouteur pour le changement de couleur des scores
+document.getElementById('score-color').addEventListener('input', (e) => {
+    state.scoreColor = e.target.value;
+    document.getElementById('score1-display').style.color = e.target.value;
+    document.getElementById('score2-display').style.color = e.target.value;
+    saveState();
+});
+
+// Écouteur pour le changement de couleur du chronomètre
+document.getElementById('timer-color').addEventListener('input', (e) => {
+    state.timerColor = e.target.value;
+    document.getElementById('timer-display').style.color = e.target.value;
+    saveState();
+});
+
+// Initialize on load
+init();
+
+// Resume timer if running
+if (state.isRunning) {
+    startTimer();
+}
+
+// ============================================================
+// BOÎTE D'OPTIONS - Ouverture / Fermeture
+// ============================================================
+
+/**
+ * Ouvre la boîte d'options
+ */
+function openOptionsBox() {
+    document.getElementById('options-overlay').classList.add('active');
+    document.getElementById('options-box').classList.add('active');
+    // Charger la clé API sauvegardée si présente
+    const savedKey = localStorage.getItem('yt_api_key') || '';
+    document.getElementById('yt-api-key').value = savedKey;
+}
+
+/**
+ * Ferme la boîte d'options
+ */
+function closeOptionsBox() {
+    document.getElementById('options-overlay').classList.remove('active');
+    document.getElementById('options-box').classList.remove('active');
+}
+
+// Fermer avec Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeOptionsBox();
+});
+
+/**
+ * Ouvre/ferme un accordéon dans la boîte d'options
+ * @param {string} contentId - ID de l'élément de contenu à toggle
+ */
+function toggleOptionCard(contentId) {
+    const content = document.getElementById(contentId);
+    const arrowId = 'arrow-' + contentId;
+    const arrow = document.getElementById(arrowId);
+
+    if (!content) return;
+
+    const isOpen = content.classList.contains('open');
+    content.classList.toggle('open', !isOpen);
+    if (arrow) arrow.classList.toggle('open', !isOpen);
+}
+
+// ============================================================
+// RECHERCHE YOUTUBE - Logique principale
+// ============================================================
+
+let ytSelectedVideo = null; // Vidéo YouTube actuellement sélectionnée
+
+/**
+ * Sauvegarde la clé API YouTube dans localStorage
+ */
+function saveYtApiKey() {
+    const key = document.getElementById('yt-api-key').value.trim();
+    localStorage.setItem('yt_api_key', key);
+    if (key) {
+        showYtFeedback('✅ Clé API sauvegardée !', 'success');
+    } else {
+        localStorage.removeItem('yt_api_key');
+        showYtFeedback('🗑️ Clé API supprimée.', 'info');
+    }
+}
+
+/**
+ * Affiche un message de feedback temporaire dans la zone résultats
+ * @param {string} msg - Message à afficher
+ * @param {string} type - 'success' | 'error' | 'info'
+ */
+function showYtFeedback(msg, type = 'info') {
+    const results = document.getElementById('yt-results');
+    const color = type === 'success' ? '#00ff88' : type === 'error' ? '#ff6b6b' : '#c39bd3';
+    results.innerHTML = `<div style="text-align:center;padding:20px;color:${color};font-size:14px;">${msg}</div>`;
+}
+
+/**
+ * Lance une recherche YouTube.
+ * - Avec clé API : appel YouTube Data v3, affiche miniatures + titres + chaînes
+ * - Sans clé API  : affiche un champ URL manuel + lien de recherche YouTube
+ */
+async function searchYoutube() {
+    const query = document.getElementById('yt-search-input').value.trim();
+    if (!query) {
+        showYtFeedback('⚠️ Entrez un terme de recherche.', 'error');
+        return;
+    }
+
+    const apiKey = localStorage.getItem('yt_api_key') || '';
+    const results = document.getElementById('yt-results');
+
+    // Cacher la preview si ouverte
+    closeYtPreview();
+
+    if (apiKey) {
+        // --- Mode avec clé API ---
+        results.innerHTML = '<div class="yt-loading">🔍 Recherche en cours...</div>';
+
+        try {
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(query)}&key=${apiKey}`;
+            const res = await fetch(url);
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                const errMsg = errData?.error?.message || `Erreur HTTP ${res.status}`;
+                results.innerHTML = `<div class="yt-error">❌ ${errMsg}<br><small>Vérifiez votre clé API et les quotas Google Cloud.</small></div>`;
+                return;
+            }
+
+            const data = await res.json();
+
+            if (!data.items || data.items.length === 0) {
+                showYtFeedback('😕 Aucun résultat trouvé.', 'info');
+                return;
+            }
+
+            renderYtResults(data.items);
+
+        } catch (e) {
+            results.innerHTML = `<div class="yt-error">❌ Erreur réseau : ${e.message}<br><small>L'API YouTube nécessite une connexion internet.</small></div>`;
+        }
+
+    } else {
+        // --- Mode sans clé API : URL manuelle + lien YouTube ---
+        const ytSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        results.innerHTML = `
+            <div class="yt-no-key-wrap">
+                <p style="color:#888;font-size:13px;text-align:center;">
+                    Sans clé API, collez l'URL YouTube de la vidéo choisie ci-dessous.<br>
+                    <a href="${ytSearchUrl}" target="_blank" rel="noopener" style="color:#c39bd3;">
+                        🔗 Ouvrir la recherche YouTube dans un nouvel onglet ↗
+                    </a>
+                </p>
+                <div class="yt-manual-url-row">
+                    <input type="text" id="yt-manual-url" placeholder="Collez l'URL YouTube ici...">
+                    <button class="btn btn-success btn-sm" onclick="previewYtManualUrl()">👁️ Prévisualiser</button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Affiche les résultats de recherche YouTube API
+ * @param {Array} items - Tableau d'items retournés par l'API YouTube
+ */
+function renderYtResults(items) {
+    const results = document.getElementById('yt-results');
+    results.innerHTML = items.map(item => {
+        const videoId = item.id.videoId;
+        const title = item.snippet.title;
+        const channel = item.snippet.channelTitle;
+        const thumb = item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '';
+        const publishedAt = item.snippet.publishedAt
+            ? new Date(item.snippet.publishedAt).getFullYear()
+            : '';
+
+        return `
+            <div class="yt-result-item" onclick="selectYtVideo('${videoId}', ${JSON.stringify(title).replace(/'/g, "&#39;")})"
+                 id="yt-item-${videoId}">
+                <img class="yt-result-thumb" src="${thumb}" alt="${title}" loading="lazy"
+                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2258%22><rect fill=%22%23222%22 width=%22100%25%22 height=%22100%25%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23555%22 font-size=%2212%22>No thumb</text></svg>'">
+                <div class="yt-result-info">
+                    <div class="yt-result-title">${title}</div>
+                    <div class="yt-result-channel">${channel}${publishedAt ? ' · ' + publishedAt : ''}</div>
+                </div>
+                <button class="yt-result-play-btn" onclick="event.stopPropagation(); selectYtVideo('${videoId}', ${JSON.stringify(title).replace(/'/g, "&#39;")})">▶</button>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Sélectionne une vidéo YouTube et ouvre la prévisualisation
+ * @param {string} videoId - ID YouTube de la vidéo
+ * @param {string} title - Titre de la vidéo
+ */
+function selectYtVideo(videoId, title) {
+    // Mettre en surbrillance l'item sélectionné
+    document.querySelectorAll('.yt-result-item').forEach(el => el.classList.remove('selected'));
+    const item = document.getElementById(`yt-item-${videoId}`);
+    if (item) item.classList.add('selected');
+
+    ytSelectedVideo = {
+        videoId,
+        title,
+        embedUrl: `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
+    };
+
+    // Afficher la prévisualisation
+    const previewWrap = document.getElementById('yt-preview-wrap');
+    const previewFrame = document.getElementById('yt-preview-frame');
+    const previewTitle = document.getElementById('yt-preview-title');
+
+    previewTitle.textContent = title;
+    previewFrame.src = ytSelectedVideo.embedUrl;
+    previewWrap.style.display = 'flex';
+
+    // Scroll vers la preview
+    previewWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Gère la prévisualisation depuis une URL manuelle (mode sans clé API)
+ */
+function previewYtManualUrl() {
+    const input = document.getElementById('yt-manual-url');
+    if (!input) return;
+    const url = input.value.trim();
+    if (!url) {
+        showYtFeedback('⚠️ Collez une URL YouTube valide.', 'error');
+        return;
+    }
+
+    // Extraire l'ID YouTube
+    const videoId = extractYoutubeId(url);
+    if (!videoId) {
+        showYtFeedback('❌ URL YouTube invalide. Exemple : https://www.youtube.com/watch?v=XXXX', 'error');
+        return;
+    }
+
+    const title = url; // Pas de titre dispo sans API
+    selectYtVideo(videoId, title);
+}
+
+/**
+ * Extrait l'ID d'une URL YouTube (formats watch, youtu.be, embed)
+ * @param {string} url
+ * @returns {string|null} L'ID vidéo ou null
+ */
+function extractYoutubeId(url) {
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+        /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+/**
+ * Ferme la prévisualisation YouTube et stoppe la vidéo
+ */
+function closeYtPreview() {
+    const previewWrap = document.getElementById('yt-preview-wrap');
+    const previewFrame = document.getElementById('yt-preview-frame');
+    if (previewWrap) previewWrap.style.display = 'none';
+    if (previewFrame) previewFrame.src = ''; // Stopper la lecture
+    ytSelectedVideo = null;
+    document.querySelectorAll('.yt-result-item').forEach(el => el.classList.remove('selected'));
+}
+
+/**
+ * Envoie la vidéo YouTube sélectionnée vers le stadium display
+ * Utilise le même mécanisme que showMedia() avec le mode auto
+ */
+function sendYoutubeToDisplay() {
+    if (!ytSelectedVideo) {
+        alert('Aucune vidéo sélectionnée.');
+        return;
+    }
+
+    // Construire l'URL embed optimisée pour le stadium display
+    const embedUrl = `https://www.youtube.com/embed/${ytSelectedVideo.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1`;
+
+    // Récupérer les paramètres d'animation actuels du panneau
+    const animationIn = document.getElementById('media-animation-in')?.value || 'fade';
+    const animationOut = document.getElementById('media-animation-out')?.value || 'fade';
+    const videoMode = document.querySelector('input[name="video-mode"]:checked')?.value || 'auto';
+
+    state.media = {
+        type: 'video',
+        source: embedUrl,
+        title: ytSelectedVideo.title,
+        duration: 0,
+        animationIn,
+        animationOut,
+        repeat: false,
+        scroll: 'none',
+        videoMode
+    };
+
+    saveState();
+
+    // Afficher le bouton son dans le panneau
+    const btnUnmute = document.getElementById('btn-unmute');
+    if (btnUnmute) {
+        btnUnmute.style.display = 'inline-block';
+        btnUnmute.textContent = '🔇 Son coupé';
+        btnUnmute.classList.remove('btn-success');
+        btnUnmute.classList.add('btn-warning');
+    }
+
+    // Fermer la boîte d'options
+    closeOptionsBox();
+
+    log('Vidéo YouTube envoyée au stadium display:', ytSelectedVideo.title);
+}

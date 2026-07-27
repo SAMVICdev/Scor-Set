@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stadium Live Régie v2.1 - Control Panel</title>
+    <link rel="stylesheet" href="control_panel.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- ============================================================
+             BARRE LATÉRALE - Configuration et prévisualisation
+             ============================================================ -->
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Live Preview -->
+            <div class="section">
+                <h3 class="section-title">📺 Live Preview</h3>
+                <div class="preview-container">
+                    <iframe class="preview-frame" src="stadium_display.html"></iframe>
+                </div>
+                <a href="stadium_display.html" target="_blank" class="preview-link">🔗 Ouvrir le Display (Nouvel
+                    onglet)</a>
+            </div>
+
+            <!-- Team Configuration -->
+            <div class="section">
+                <h3 class="section-title">⚙️ Configuration Équipes</h3>
+                <div class="team-config">
+                    <label>Équipe Domicile</label>
+                    <input type="text" id="team1-name" placeholder="Nom équipe" value="HOME">
+                </div>
+                <div class="team-config">
+                    <label>Couleur Domicile</label>
+                    <input type="color" id="team1-color" value="#e94560">
+                </div>
+                <div class="team-config">
+                    <label>Logo Domicile</label>
+                    <input type="file" id="team1-logo" accept="image/*" onchange="handleTeamLogoUpload(1)">
+                    <div class="logo-preview" id="team1-logo-preview"></div>
+                </div>
+                <div class="team-config">
+                    <label>Équipe Extérieur</label>
+                    <input type="text" id="team2-name" placeholder="Nom équipe" value="AWAY">
+                </div>
+                <div class="team-config">
+                    <label>Couleur Extérieur</label>
+                    <input type="color" id="team2-color" value="#00ff88">
+                </div>
+                <div class="team-config">
+                    <label>Logo Extérieur</label>
+                    <input type="file" id="team2-logo" accept="image/*" onchange="handleTeamLogoUpload(2)">
+                    <div class="logo-preview" id="team2-logo-preview"></div>
+                </div>
+                <button class="btn btn-primary" onclick="saveTeamConfig()" style="width: 100%; margin-top: 10px;">💾
+                    Sauvegaarder</button>
+            </div>
+
+            <!-- Theme Selector -->
+            <div class="section">
+                <h3 class="section-title">🎨 Thème Display</h3>
+                <div class="theme-selector">
+                    <label>Sélectionner un thème:</label>
+                    <select id="theme-select" onchange="setTheme(this.value)">
+                        <option value="dark">🌙 Sombre (Dark)</option>
+                        <option value="light">☀️ Clair (Light)</option>
+                        <option value="blue">🔵 Bleu (Blue)</option>
+                        <option value="green">🟢 Vert (Green)</option>
+                    </select>
+                </div>
+                <div class="theme-preview">
+                    <div class="theme-option dark" onclick="setTheme('dark')" title="Dark"></div>
+                    <div class="theme-option light" onclick="setTheme('light')" title="Light"></div>
+                    <div class="theme-option blue" onclick="setTheme('blue')" title="Blue"></div>
+                    <div class="theme-option green" onclick="setTheme('green')" title="Green"></div>
+                </div>
+            </div>
+
+            <!-- Roster Manager -->
+            <div class="section">
+                <h3 class="section-title">👥 Gestion Effectifs</h3>
+                <div class="team-tabs">
+                    <button class="team-tab active" onclick="selectTeam(1)" id="tab1">Domicile</button>
+                    <button class="team-tab" onclick="selectTeam(2)" id="tab2">Extérieur</button>
+                </div>
+                <div class="roster-manager">
+                    <div class="add-player-form">
+                        <input type="number" id="player-number" placeholder="N°" min="1" max="99">
+                        <input type="text" id="player-name" placeholder="Nom">
+                        <input type="text" id="player-position" placeholder="Poste">
+                        <button class="btn btn-success btn-sm" onclick="addPlayer()">+</button>
+                    </div>
+                    <div class="player-list" id="player-list"></div>
+                </div>
+            </div>
+
+            <!-- Reset -->
+            <div class="section reset-section">
+                <button class="btn btn-danger" onclick="resetMatch()">🔄 Réinitialiser le Match</button>
+            </div>
+
+            <!-- Boîte d'options -->
+            <div class="section" style="border-bottom:none;">
+                <button class="btn btn-options" onclick="openOptionsBox()">⚙️ Options Avancées</button>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             CONTENU PRINCIPAL - Contrôle du match en direct
+             ============================================================ -->
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Timer Section -->
+            <div class="timer-section">
+                <h3 class="section-title">⏱️ Chronomètre</h3>
+                <div class="timer-display" id="timer-display">00:00</div>
+                <div class="timer-color-input">
+                    <label for="timer-color">Couleur de l'Heure:</label>
+                    <input type="color" id="timer-color" value="#ffffff">
+                </div>
+                <div class="timer-controls">
+                    <button class="btn btn-success" onclick="startTimer()">▶️ Start</button>
+                    <button class="btn btn-warning" onclick="pauseTimer()">⏸️ Pause</button>
+                    <button class="btn btn-primary" onclick="resetTimer()">🔄 Reset</button>
+                    <button class="btn btn-primary" onclick="adjustTime(1)">+1 min</button>
+                    <button class="btn btn-primary" onclick="adjustTime(-1)">-1 min</button>
+                </div>
+                <div class="phase-controls">
+                    <button class="btn btn-primary" onclick="setPhase('first-half')">1ère Période</button>
+                    <button class="btn btn-warning" onclick="setPhase('ht')">Mi-Temps</button>
+                    <button class="btn btn-primary" onclick="setPhase('second-half')">2ème Période</button>
+                    <button class="btn btn-info" onclick="setPhase('et')">Prolongations</button>
+                    <button class="btn btn-danger" onclick="setPhase('ft')">Fin Match</button>
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <label style="color: #888; margin-right: 10px;">Temps Additionnel:</label>
+                    <input type="number" id="added-time" value="0" min="0" max="15"
+                        style="width: 60px; padding: 8px; border: 2px solid rgba(233, 69, 96, 0.3); border-radius: 8px; background: rgba(255,255,255,0.1); color: white; text-align: center;">
+                    <button class="btn btn-primary btn-sm" onclick="saveAddedTime()">OK</button>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 SECTION SCORE - Gestion du score du match
+                 ============================================================ -->
+            <!-- Score Section -->
+            <div class="score-section">
+                <h3 class="section-title">⚽ Score</h3>
+                <div class="score-display">
+                    <div class="team-score">
+                        <div class="team-score-name" id="score-team1-name">HOME</div>
+                        <div class="team-score-value" id="score1-display" style="color: #e94560;">0</div>
+                    </div>
+                    <div style="font-size: 48px; color: #888;">-</div>
+                    <div class="team-score">
+                        <div class="team-score-name" id="score-team2-name">AWAY</div>
+                        <div class="team-score-value" id="score2-display" style="color: #00ff88;">0</div>
+                    </div>
+                </div>
+                <div class="score-colors">
+                    <div class="score-color-input">
+                        <label for="score-color">Couleur des Scores:</label>
+                        <input type="color" id="score-color" value="#e94560">
+                    </div>
+                </div>
+                <div class="score-controls">
+                    <button class="btn btn-success" onclick="addGoal(1)">+1 Domicile</button>
+                    <button class="btn btn-danger" onclick="removeGoal(1)">-1 Domicile</button>
+                    <button class="btn btn-success" onclick="addGoal(2)">+1 Extérieur</button>
+                    <button class="btn btn-danger" onclick="removeGoal(2)">-1 Extérieur</button>
+                </div>
+                <div class="goal-controls">
+                    <div class="goal-controls-title">🎯 Enregistrer un but avec détails</div>
+                    <div class="goal-selector">
+                        <select id="goal-team">
+                            <option value="1">Équipe Domicile</option>
+                            <option value="2">Équipe Extérieur</option>
+                        </select>
+                        <select id="goal-scorer">
+                            <option value="">-- Buteur --</option>
+                        </select>
+                        <select id="goal-assist">
+                            <option value="">-- Passeur --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="recordGoal()">⚽ Enregistrer le But</button>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 SECTION DISCIPLINE - Cartons et remplacements
+                 ============================================================ -->
+            <!-- Discipline Section -->
+            <div class="discipline-section">
+                <h3 class="section-title">🟨🟥 Discipline & Remplacements</h3>
+                <div class="discipline-controls">
+                    <div class="discipline-card">
+                        <h4>🟨 Carton Jaune</h4>
+                        <select id="yellow-team" onchange="updatePlayerSelects()">
+                            <option value="1">Domicile</option>
+                            <option value="2">Extérieur</option>
+                        </select>
+                        <select id="yellow-player">
+                            <option value="">-- Joueur --</option>
+                        </select>
+                        <button class="btn btn-warning" onclick="showYellowCard()">🟨 Carton Jaune</button>
+                    </div>
+                    <div class="discipline-card">
+                        <h4>🟥 Carton Rouge</h4>
+                        <select id="red-team" onchange="updatePlayerSelects()">
+                            <option value="1">Domicile</option>
+                            <option value="2">Extérieur</option>
+                        </select>
+                        <select id="red-player">
+                            <option value="">-- Joueur --</option>
+                        </select>
+                        <button class="btn btn-danger" onclick="showRedCard()">🟥 Carton Rouge</button>
+                    </div>
+                    <div class="discipline-card">
+                        <h4>🔄 Remplacement</h4>
+                        <select id="sub-team" onchange="updatePlayerSelects()">
+                            <option value="1">Domicile</option>
+                            <option value="2">Extérieur</option>
+                        </select>
+                        <div class="sub-controls">
+                            <select id="sub-out">
+                                <option value="">-- Sort --</option>
+                            </select>
+                            <select id="sub-in">
+                                <option value="">-- Entrée --</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success" onclick="showSubstitution()">🔄 Remplacement</button>
+                    </div>
+                    <div class="discipline-card">
+                        <h4>📺 VAR</h4>
+                        <button class="btn btn-primary" onclick="showVAR()">📺 VAR Review</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 SECTION STATISTIQUES - Possession, Tirs, Corners
+                 ============================================================ -->
+            <!-- Stats Section -->
+            <div class="stats-section">
+                <h3 class="section-title">📊 Statistiques Live</h3>
+                <div class="stats-grid">
+                    <div class="stat-input">
+                        <label>Possession Domicile (%)</label>
+                        <input type="number" id="possession" value="50" min="0" max="100" onchange="saveStats()">
+                    </div>
+                    <div class="stat-input">
+                        <label>Tirs Domicile</label>
+                        <input type="number" id="shots1" value="0" min="0" onchange="saveStats()">
+                    </div>
+                    <div class="stat-input">
+                        <label>Tirs Extérieur</label>
+                        <input type="number" id="shots2" value="0" min="0" onchange="saveStats()">
+                    </div>
+                    <div class="stat-input">
+                        <label>Corners Domicile</label>
+                        <input type="number" id="corners1" value="0" min="0" onchange="saveStats()">
+                    </div>
+                    <div class="stat-input">
+                        <label>Corners Extérieur</label>
+                        <input type="number" id="corners2" value="0" min="0" onchange="saveStats()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 SECTION BANDEAU DÉFILANT - Messages d'information
+                 ============================================================ -->
+            <!-- Ticker Section -->
+            <div class="ticker-section">
+                <h3 class="section-title">📢 Bandeau Défilant</h3>
+                <div class="ticker-input">
+                    <textarea id="ticker-input" placeholder="Ajouter un message (peut être très long)..."
+                        rows="3"></textarea>
+                    <div class="ticker-color-input">
+                        <label for="ticker-color">Couleur du message:</label>
+                        <input type="color" id="ticker-color" value="#00ff88">
+                    </div>
+                    <button class="btn btn-primary" onclick="addTickerItem()">Ajouter</button>
+                </div>
+                <div class="ticker-items" id="ticker-items"></div>
+            </div>
+
+            <!-- ============================================================
+                 SECTION MÉDIA - Affichage d'images et vidéos
+                 ============================================================ -->
+            <!-- Media Section -->
+            <div class="media-section">
+                <h3 class="section-title">📺 Affichage Média (Publicité/Info)</h3>
+                <div class="media-warning"
+                    style="background: rgba(255, 193, 7, 0.2); border: 2px solid #ffc107; border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 13px; color: #ffc107;">
+                    ⚠️ <strong>Important :</strong> Pour les vidéos, utilisez des <strong>URLs externes</strong>
+                    (YouTube, Vimeo, etc.). L'upload de fichiers vidéo est limité par localStorage (~4MB max).
+                </div>
+                <div class="media-type-selector">
+                    <label>Type de média:</label>
+                    <select id="media-type" onchange="updateMediaType()">
+                        <option value="none">Aucun</option>
+                        <option value="image">Image</option>
+                        <option value="video">Vidéo</option>
+                    </select>
+                </div>
+                <div class="media-input">
+                    <label>Titre:</label>
+                    <input type="text" id="media-title-input" placeholder="Titre du média...">
+                </div>
+                <div class="media-input">
+                    <label>Source (URL ou upload):</label>
+                    <input type="text" id="media-source" placeholder="URL de l'image/vidéo...">
+                    <button class="btn btn-primary btn-sm" onclick="uploadMediaFile()">📁 Upload</button>
+                    <input type="file" id="media-file-input" accept="image/*,video/*" style="display: none;"
+                        onchange="handleMediaUpload(this)">
+                </div>
+                <div class="media-input">
+                    <label>Durée (secondes, pour images):</label>
+                    <input type="number" id="media-duration" value="10" min="1" max="300">
+                </div>
+                <div class="media-input">
+                    <label>Animation d'entrée:</label>
+                    <select id="media-animation-in">
+                        <option value="slide">Glissement (Slide)</option>
+                        <option value="fade">Fondu (Fade)</option>
+                        <option value="zoom">Zoom</option>
+                        <option value="rotate">Rotation</option>
+                        <option value="bounce">Rebond (Bounce)</option>
+                    </select>
+                </div>
+                <div class="media-input">
+                    <label>Animation de sortie:</label>
+                    <select id="media-animation-out">
+                        <option value="slide">Glissement (Slide)</option>
+                        <option value="fade">Fondu (Fade)</option>
+                        <option value="zoom">Zoom</option>
+                        <option value="rotate">Rotation</option>
+                        <option value="bounce">Rebond (Bounce)</option>
+                    </select>
+                </div>
+                <div class="media-input">
+                    <label>Répétition:</label>
+                    <select id="media-repeat">
+                        <option value="false">Non (une seule fois)</option>
+                        <option value="true">Oui (répéter)</option>
+                    </select>
+                </div>
+                <div class="media-input">
+                    <label>🎮 Mode de lecture vidéo:</label>
+                    <div class="video-mode-selector">
+                        <label class="video-mode-option">
+                            <input type="radio" name="video-mode" id="video-mode-auto" value="auto" checked
+                                onchange="onVideoModeChange()">
+                            <span class="video-mode-btn">▶️ Auto</span>
+                        </label>
+                        <label class="video-mode-option">
+                            <input type="radio" name="video-mode" id="video-mode-manual" value="manual"
+                                onchange="onVideoModeChange()">
+                            <span class="video-mode-btn">🎮 Manuel</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="media-input">
+                    <label>Effet de défilement:</label>
+                    <select id="media-scroll">
+                        <option value="none">Aucun</option>
+                        <option value="horizontal">Horizontal (gauche à droite)</option>
+                        <option value="vertical">Vertical (haut en bas)</option>
+                        <option value="zoom-in">Zoom progressif</option>
+                        <option value="zoom-out">Zoom arrière progressif</option>
+                    </select>
+                </div>
+                <div class="media-preview" id="media-preview"></div>
+                <div class="media-controls">
+                    <button class="btn btn-success" onclick="showMedia()">▶️ Afficher</button>
+                    <button class="btn btn-danger" onclick="hideMedia()">⏹️ Masquer</button>
+                    <button class="btn btn-warning" id="btn-unmute" onclick="toggleMute()" style="display:none;">🔇 Son
+                        coupé</button>
+                </div>
+
+                <!-- Contrôle Manuel Vidéo -->
+                <div class="video-manual-controls" id="video-manual-controls" style="display:none;">
+                    <div class="video-manual-title">🎮 Contrôle Vidéo en Direct</div>
+                    <div class="video-progress-wrap">
+                        <span class="video-time" id="vc-current">00:00</span>
+                        <input type="range" id="vc-seek" min="0" max="100" value="0" step="0.1" class="video-seek-bar"
+                            oninput="seekVideo(this.value)">
+                        <span class="video-time" id="vc-duration">00:00</span>
+                    </div>
+                    <div class="video-manual-btns">
+                        <button class="btn btn-primary btn-sm" onclick="sendVideoCmd('seek-back-30')"
+                            title="Reculer 30s">⏮ -30s</button>
+                        <button class="btn btn-primary btn-sm" onclick="sendVideoCmd('seek-back-10')"
+                            title="Reculer 10s">⏪ -10s</button>
+                        <button class="btn btn-warning btn-sm" id="vc-playpause" onclick="toggleVideoPlayPause()"
+                            title="Play/Pause">⏸ Pause</button>
+                        <button class="btn btn-primary btn-sm" onclick="sendVideoCmd('seek-fwd-10')"
+                            title="Avancer 10s">⏩ +10s</button>
+                        <button class="btn btn-primary btn-sm" onclick="sendVideoCmd('seek-fwd-30')"
+                            title="Avancer 30s">⏭ +30s</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script principal -->
+    <script src="control_panel.js"></script>
+
+    <!-- ============================================================
+         BOÎTE D'OPTIONS - Modal extensible
+         ============================================================ -->
+    <div class="options-overlay" id="options-overlay" onclick="closeOptionsBox()"></div>
+    <div class="options-box" id="options-box">
+        <div class="options-box-header">
+            <h2 class="options-box-title">⚙️ Options Avancées</h2>
+            <button class="options-close-btn" onclick="closeOptionsBox()" aria-label="Fermer">✕</button>
+        </div>
+        <div class="options-box-body">
+
+            <!-- ---- Fonctionnalité 1 : Recherche YouTube ---- -->
+            <div class="option-card" id="option-youtube">
+                <div class="option-card-header" onclick="toggleOptionCard('youtube-content')">
+                    <span class="option-card-icon">🎬</span>
+                    <span class="option-card-label">Recherche Vidéo YouTube</span>
+                    <span class="option-card-arrow" id="arrow-youtube-content">▼</span>
+                </div>
+                <div class="option-card-content" id="youtube-content">
+
+                    <!-- Clé API (optionnelle) -->
+                    <div class="yt-api-row">
+                        <input type="text" id="yt-api-key" placeholder="Clé API YouTube (optionnelle)..."
+                            autocomplete="off">
+                        <button class="btn btn-primary btn-sm" onclick="saveYtApiKey()">💾</button>
+                    </div>
+                    <p class="yt-api-hint">
+                        Sans clé : prévisualisation iframe uniquement.<br>
+                        Avec clé : résultats complets + miniatures.
+                        <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
+                            rel="noopener">Obtenir une clé ↗</a>
+                    </p>
+
+                    <!-- Barre de recherche -->
+                    <div class="yt-search-row">
+                        <input type="text" id="yt-search-input" placeholder="Rechercher une vidéo..."
+                            onkeydown="if(event.key==='Enter') searchYoutube()">
+                        <button class="btn btn-success btn-sm" onclick="searchYoutube()">🔍 Rechercher</button>
+                    </div>
+
+                    <!-- Résultats -->
+                    <div class="yt-results" id="yt-results">
+                        <div class="yt-placeholder">Entrez un terme de recherche et appuyez sur Rechercher.</div>
+                    </div>
+
+                    <!-- Prévisualisation de la vidéo sélectionnée -->
+                    <div class="yt-preview-wrap" id="yt-preview-wrap" style="display:none;">
+                        <div class="yt-preview-title" id="yt-preview-title"></div>
+                        <iframe class="yt-preview-frame" id="yt-preview-frame" src="" allowfullscreen
+                            allow="autoplay; encrypted-media"></iframe>
+                        <div class="yt-preview-actions">
+                            <button class="btn btn-success" onclick="sendYoutubeToDisplay()">
+                                ▶️ Afficher sur le Stadium
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="closeYtPreview()">✕ Annuler</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <!-- Espace pour futures fonctionnalités -->
+
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stadium Live Régie v2.1 - Display</title>
+    <link rel="stylesheet" href="stadium_display.css">
+</head>
+
+<body>
+    <!-- Bouton plein écran -->
+    <button class="fullscreen-btn" onclick="toggleFullscreen()" aria-label="Activer le mode plein écran">⛶ Plein
+        Écran</button>
+
+    <!-- ============================================================
+         TABLEAU DES SCORES - Affichage du score et du chronomètre
+         ============================================================ -->
+
+    <!-- Scoreboard -->
+    <div class="scoreboard" role="region" aria-label="Tableau des scores">
+        <div class="team" id="team1">
+            <div class="team-logo" id="team1-logo" aria-label="Logo équipe domicile">H</div>
+            <div class="team-info">
+                <div class="team-name" id="team1-name">HOME</div>
+            </div>
+        </div>
+
+        <div class="score-display" aria-live="polite">
+            <div class="score">
+                <span id="score1" aria-label="Score équipe domicile">0</span>
+                <span aria-hidden="true">-</span>
+                <span id="score2" aria-label="Score équipe extérieur">0</span>
+            </div>
+            <div class="timer">
+                <span id="timer" aria-label="Chronomètre du match">00:00</span>
+                <span class="added-time" id="added-time" aria-label="Temps additionnel"></span>
+            </div>
+        </div>
+
+        <div class="team right" id="team2">
+            <div class="team-logo" id="team2-logo" aria-label="Logo équipe extérieur">A</div>
+            <div class="team-info">
+                <div class="team-name" id="team2-name">AWAY</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         ZONE CENTRALE - Composition des équipes
+         ============================================================ -->
+    <!-- Central Zone -->
+    <div class="central-zone" role="region" aria-label="Zone centrale - Composition des équipes">
+        <div class="line-up">
+            <div class="line-up-title">⚽ Composition</div>
+            <div class="team-lineup" id="lineup1" aria-label="Composition équipe domicile"></div>
+            <div class="team-lineup" id="lineup2" aria-label="Composition équipe extérieur"></div>
+        </div>
+
+        <div class="line-up">
+            <div class="line-up-title">🟨🟥 Historique des Cartons</div>
+            <div class="cards-history" id="cards-history" aria-live="polite">
+                <div class="no-cards">Aucun carton pour le moment</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         BARRE DE STATISTIQUES - Possession, Tirs, Corners
+         ============================================================ -->
+    <!-- Stats Bar -->
+    <div class="stats-bar" role="region" aria-label="Statistiques du match" aria-live="polite">
+        <div class="stat-group">
+            <div class="stat-group-title">Possession</div>
+            <div class="stat-row">
+                <div class="stat-team">
+                    <div class="stat-team-name" id="stats-team1-name">HOME</div>
+                    <div class="stat-value" id="stats-possession1" aria-label="Possession équipe domicile">50%</div>
+                </div>
+                <div class="stat-divider" aria-hidden="true">-</div>
+                <div class="stat-team">
+                    <div class="stat-team-name" id="stats-team2-name">AWAY</div>
+                    <div class="stat-value" id="stats-possession2" aria-label="Possession équipe extérieur">50%</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-group">
+            <div class="stat-group-title">Tirs</div>
+            <div class="stat-row">
+                <div class="stat-team">
+                    <div class="stat-value" id="stats-shots1" aria-label="Tirs équipe domicile">0</div>
+                </div>
+                <div class="stat-divider" aria-hidden="true">-</div>
+                <div class="stat-team">
+                    <div class="stat-value" id="stats-shots2" aria-label="Tirs équipe extérieur">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-group">
+            <div class="stat-group-title">Corners</div>
+            <div class="stat-row">
+                <div class="stat-team">
+                    <div class="stat-value" id="stats-corners1" aria-label="Corners équipe domicile">0</div>
+                </div>
+                <div class="stat-divider" aria-hidden="true">-</div>
+                <div class="stat-team">
+                    <div class="stat-value" id="stats-corners2" aria-label="Corners équipe extérieur">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-group">
+            <div class="stat-group-title">Cartons</div>
+            <div class="stat-row">
+                <div class="stat-team">
+                    <div class="stat-value" id="stats-cards1" aria-label="Cartons équipe domicile">🟨0 🟥0</div>
+                </div>
+                <div class="stat-divider" aria-hidden="true">-</div>
+                <div class="stat-team">
+                    <div class="stat-value" id="stats-cards2" aria-label="Cartons équipe extérieur">🟨0 🟥0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         OVERLAYS ET MODALES - Affichage des événements de match
+         ============================================================ -->
+    <!-- Goal Overlay -->
+    <div class="goal-overlay" id="goal-overlay" role="alert" aria-live="assertive">
+        <div class="goal-text">GOAL!</div>
+    </div>
+
+    <!-- Player Card -->
+    <div class="player-card" id="player-card" role="dialog" aria-label="Carte du buteur">
+        <img class="player-photo" id="card-photo" src="" alt="Photo du joueur">
+        <div class="player-info">
+            <div class="player-number" id="card-number">10</div>
+            <div class="player-name" id="card-name">Player Name</div>
+            <div class="player-position" id="card-position">Forward</div>
+            <div class="goal-type" id="card-type">BUT!</div>
+        </div>
+    </div>
+
+    <!-- Yellow Card Modal -->
+    <div class="modal yellow" id="yellow-modal" role="dialog" aria-label="Carton jaune" aria-live="assertive">
+        <div class="modal-icon" aria-hidden="true">🟨</div>
+        <div class="modal-title">Carton Jaune</div>
+        <div class="modal-player">
+            <img class="modal-player-photo" id="yellow-photo" src="" alt="Photo du joueur">
+            <div class="modal-player-info">
+                <div class="modal-player-name" id="yellow-name">Player</div>
+                <div class="modal-player-number" id="yellow-number">10</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Red Card Modal -->
+    <div class="modal red" id="red-modal" role="dialog" aria-label="Carton rouge" aria-live="assertive">
+        <div class="modal-icon" aria-hidden="true">🟥</div>
+        <div class="modal-title">Carton Rouge</div>
+        <div class="modal-player">
+            <img class="modal-player-photo" id="red-photo" src="" alt="Photo du joueur">
+            <div class="modal-player-info">
+                <div class="modal-player-name" id="red-name">Player</div>
+                <div class="modal-player-number" id="red-number">10</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Substitution Modal -->
+    <div class="modal sub" id="sub-modal" role="dialog" aria-label="Remplacement" aria-live="assertive">
+        <div class="modal-icon" aria-hidden="true">🔄</div>
+        <div class="modal-title">Remplacement</div>
+        <div class="modal-player">
+            <img class="modal-player-photo" id="sub-out-photo" src="" alt="Photo du joueur sortant">
+            <div class="modal-player-info">
+                <div class="modal-player-name" id="sub-out-name">Out</div>
+                <div class="modal-player-number" id="sub-out-number">10</div>
+            </div>
+        </div>
+        <div style="font-size: 30px;" aria-hidden="true">⬇️</div>
+        <div class="modal-player">
+            <img class="modal-player-photo" id="sub-in-photo" src="" alt="Photo du joueur entrant">
+            <div class="modal-player-info">
+                <div class="modal-player-name" id="sub-in-name">In</div>
+                <div class="modal-player-number" id="sub-in-number">11</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VAR Modal -->
+    <div class="modal var" id="var-modal" role="dialog" aria-label="VAR Review" aria-live="assertive">
+        <div class="modal-icon" aria-hidden="true">📺</div>
+        <div class="modal-title">VAR Review</div>
+        <div style="font-size: 20px;">Vérification en cours...</div>
+    </div>
+
+    <!-- ============================================================
+         PHASE DE JEU ET MÉDIAS - Affichage dynamique
+         ============================================================ -->
+    <!-- Game Phase -->
+    <div class="game-phase" id="game-phase" role="status" aria-live="polite"></div>
+
+    <!-- Media Display -->
+    <div class="media-display" id="media-display" role="dialog" aria-label="Affichage média">
+        <div class="media-title" id="media-title"></div>
+        <img class="media-content" id="media-image" style="display: none;" alt="Média affiché">
+        <video class="media-content" id="media-video" style="display: none;" autoplay muted loop></video>
+        <iframe class="media-content" id="media-iframe" style="display: none;" src="" allowfullscreen
+            allow="autoplay; encrypted-media; picture-in-picture"
+            frameborder="0"></iframe>
+        <div class="media-video-controls" id="media-video-controls" style="display: none;">
+            <button class="media-control-btn" onclick="videoRewind(event)" aria-label="Reculer la vidéo">⏪ -10s</button>
+            <button class="media-control-btn" onclick="videoForward(event)" aria-label="Avancer la vidéo">⏩ +10s</button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         BANDEAU DÉFILANT - Messages d'information
+         ============================================================ -->
+    <!-- Ticker -->
+    <div class="ticker" role="marquee" aria-label="Bandeau défilant d'informations">
+        <div class="ticker-content" id="ticker-content">
+            <span class="ticker-item">🏟️ Bienvenue au Stadium Live Régie v2.1</span>
+            <span class="ticker-item">⚽ Match en direct</span>
+            <span class="ticker-item">📺 Suivez le match en temps réel</span>
+        </div>
+    </div>
+
+    <!-- Script principal -->
+    <script src="stadium_display.js"></script>
+</body>
+
+</html>
