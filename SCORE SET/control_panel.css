@@ -1335,3 +1335,25 @@ body {
 .yt-manual-url-row input::placeholder {
     color: rgba(255, 255, 255, 0.35);
 }
+
+/* ============================================================
+   POSSESSION AUTOMATIQUE
+   ============================================================ */
+.possession-auto-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(0, 255, 136, 0.3);
+    border-radius: 10px;
+}
+
+.possession-bar-label {
+    font-size: 20px;
+    font-weight: 800;
+    color: #00ff88;
+    letter-spacing: 2px;
+    text-align: center;
+}

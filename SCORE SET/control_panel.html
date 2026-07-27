@@ -249,8 +249,13 @@
                 <h3 class="section-title">📊 Statistiques Live</h3>
                 <div class="stats-grid">
                     <div class="stat-input">
-                        <label>Possession Domicile (%)</label>
-                        <input type="number" id="possession" value="50" min="0" max="100" onchange="saveStats()">
+                        <label>⚽ Possession (auto)</label>
+                        <div class="possession-auto-display">
+                            <div class="possession-bar-wrap">
+                                <div class="possession-bar-label" id="possession-display">50% — 50%</div>
+                            </div>
+                            <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#aaa;font-size:11px;padding:4px 8px;margin-top:6px;" onclick="resetPossession()" title="Remettre à 50-50">↺ Reset</button>
+                        </div>
                     </div>
                     <div class="stat-input">
                         <label>Tirs Domicile</label>

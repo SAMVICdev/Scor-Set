@@ -600,6 +600,7 @@ function recordGoal() {
         handled: false
     });
 
+    computePossession();
     saveState();
     updateScoreDisplay();
 }
@@ -649,6 +650,7 @@ function showYellowCard() {
         handled: false
     });
 
+    computePossession();
     saveState();
 }
 
@@ -669,6 +671,7 @@ function showRedCard() {
         handled: false
     });
 
+    computePossession();
     saveState();
 }
 
@@ -690,6 +693,7 @@ function showSubstitution() {
         handled: false
     });
 
+    computePossession();
     saveState();
 }
 
@@ -707,10 +711,13 @@ function showVAR() {
 // ============================================================
 function updateStatsDisplay() {
     const possession = state.stats.possession.replace('%', '').split('-');
-    if (possession.length === 2) {
-        document.getElementById('possession').value = possession[0];
-    } else {
-        document.getElementById('possession').value = 50;
+    const p1 = possession.length === 2 ? possession[0] : '50';
+    const p2 = possession.length === 2 ? possession[1] : '50';
+
+    // Affichage possession automatique (lecture seule)
+    const displayEl = document.getElementById('possession-display');
+    if (displayEl) {
+        displayEl.textContent = `${p1}% — ${p2}%`;
     }
     document.getElementById('shots1').value = state.stats.shots[0];
     document.getElementById('shots2').value = state.stats.shots[1];
@@ -719,12 +726,77 @@ function updateStatsDisplay() {
 }
 
 /**
+ * Remet la possession à 50-50 et efface les poids d'événements
+ */
+function resetPossession() {
+    state.stats.possession = '50-50';
+    const displayEl = document.getElementById('possession-display');
+    if (displayEl) displayEl.textContent = '50% — 50%';
+    saveState();
+}
+
+/**
+ * Calcule automatiquement la possession en fonction des événements et statistiques
+ * Poids : But=6, Tir=3, Corner=2, Carton jaune/rouge=1 (équipe adverse), Remplacement=1
+ * Résultat sauvegardé dans state.stats.possession et affiché dans le panneau
+ */
+function computePossession() {
+    // Poids de base 10-10 pour éviter 0/0 en début de match
+    let w1 = 10;
+    let w2 = 10;
+
+    // Tirs (poids 3 chacun)
+    w1 += (state.stats.shots[0] || 0) * 3;
+    w2 += (state.stats.shots[1] || 0) * 3;
+
+    // Corners (poids 2 chacun)
+    w1 += (state.stats.corners[0] || 0) * 2;
+    w2 += (state.stats.corners[1] || 0) * 2;
+
+    // Événements (buts, cartons, remplacements)
+    (state.events || []).forEach(ev => {
+        switch (ev.type) {
+            case 'goal':
+                // Celui qui marque avait la balle
+                if (ev.team === 1) w1 += 6;
+                else w2 += 6;
+                break;
+            case 'yellow':
+            case 'red':
+                // La faute est commise sur l'équipe adverse → c'est l'adversaire qui avait la balle
+                if (ev.team === 1) w2 += 1; // Faute de l'équipe 1 → balle équipe 2
+                else w1 += 1;
+                break;
+            case 'substitution':
+                // Remplacement = équipe active sur le match
+                if (ev.team === 1) w1 += 1;
+                else w2 += 1;
+                break;
+        }
+    });
+
+    const total = w1 + w2;
+    let p1 = Math.round((w1 / total) * 100);
+    let p2 = 100 - p1;
+
+    // Minimum 5% par équipe
+    if (p1 < 5) { p1 = 5; p2 = 95; }
+    if (p2 < 5) { p2 = 5; p1 = 95; }
+
+    state.stats.possession = `${p1}-${p2}`;
+
+    // Mettre à jour l'affichage dans le panneau
+    const displayEl = document.getElementById('possession-display');
+    if (displayEl) {
+        displayEl.textContent = `${p1}% — ${p2}%`;
+    }
+}
+
+/**
  * Sauvegarde les statistiques du match
  */
 function saveStats() {
-    const possession1 = parseInt(document.getElementById('possession').value) || 50;
-    const possession2 = 100 - possession1;
-    state.stats.possession = `${possession1}-${possession2}`;
+    // Possession calculée automatiquement — ne pas écraser
     state.stats.shots = [
         parseInt(document.getElementById('shots1').value) || 0,
         parseInt(document.getElementById('shots2').value) || 0
@@ -733,6 +805,8 @@ function saveStats() {
         parseInt(document.getElementById('corners1').value) || 0,
         parseInt(document.getElementById('corners2').value) || 0
     ];
+    // Recalculer la possession avec les nouvelles stats
+    computePossession();
     saveState();
 }
 
