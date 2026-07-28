@@ -1394,6 +1394,11 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeOptionsBox();
 });
 
+// Charger l'historique des rapports au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadReportHistory();
+});
+
 /**
  * Ouvre/ferme un accordéon dans la boîte d'options
  * @param {string} contentId - ID de l'élément de contenu à toggle
@@ -1881,13 +1886,20 @@ function generateMatchReport() {
     const preview = document.getElementById('report-preview');
     const btnPDF = document.getElementById('btn-download-pdf');
     const btnWord = document.getElementById('btn-download-word');
+    const btnDisplay = document.getElementById('btn-display-report');
+    const btnTXT = document.getElementById('btn-download-txt');
 
     preview.innerHTML = buildReportHTML();
     preview.style.display = 'block';
     btnPDF.style.display = 'inline-block';
     btnWord.style.display = 'inline-block';
+    btnDisplay.style.display = 'inline-block';
+    btnTXT.style.display = 'inline-block';
 
     preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Sauvegarder automatiquement dans l'historique
+    saveReportToHistory();
 }
 
 /**
@@ -1952,6 +1964,507 @@ function downloadReportPDF() {
 </html>`);
     win.document.close();
     setTimeout(() => { win.print(); }, 500);
+}
+
+/**
+ * Affiche le rapport sur l'écran stadium display
+ */
+function displayReportOnScreen() {
+    const reportHTML = buildReportHTML();
+    const formattedHTML = formatReportForDisplay(reportHTML);
+    
+    // Stocker le rapport dans localStorage pour stadium_display
+    state.report = {
+        html: formattedHTML,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('stadium_match_state', JSON.stringify(state));
+    
+    // Envoyer un événement pour déclencher l'affichage
+    const event = new Event('storage');
+    event.key = 'stadium_match_state';
+    event.newValue = JSON.stringify(state);
+    window.dispatchEvent(event);
+    
+    alert('Rapport envoyé à l\'écran stadium display!');
+}
+
+/**
+ * Télécharge le rapport en fichier texte (.txt)
+ */
+function downloadReportTXT() {
+    const reportText = buildReportText();
+    const now = new Date();
+    const dateFile = now.toISOString().slice(0, 10);
+    const filename = `rapport_${state.team1.name}_vs_${state.team2.name}_${dateFile}.txt`.replace(/\s+/g, '_');
+    
+    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Sauvegarde le rapport dans IndexedDB (historique persistant)
+ */
+function saveReportToHistory() {
+    const reportData = {
+        id: Date.now(),
+        timestamp: Date.now(),
+        date: new Date().toISOString(),
+        team1: state.team1.name,
+        team2: state.team2.name,
+        score1: state.team1.score,
+        score2: state.team2.score,
+        phase: state.gamePhase,
+        stats: state.stats,
+        events: state.events,
+        html: buildReportHTML(),
+        text: buildReportText()
+    };
+    
+    const request = indexedDB.open('StadiumMatchDB', 1);
+    
+    request.onerror = () => {
+        console.error('Erreur lors de l\'ouverture de IndexedDB');
+    };
+    
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains('reports')) {
+            const objectStore = db.createObjectStore('reports', { keyPath: 'id' });
+            objectStore.createIndex('date', 'date', { unique: false });
+        }
+        
+        const transaction = db.transaction(['reports'], 'readwrite');
+        const objectStore = transaction.objectStore('reports');
+        
+        const addRequest = objectStore.add(reportData);
+        
+        addRequest.onsuccess = () => {
+            console.log('Rapport sauvegardé dans l\'historique');
+            loadReportHistory();
+        };
+        
+        addRequest.onerror = () => {
+            console.error('Erreur lors de la sauvegarde');
+        };
+    };
+    
+    request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('reports')) {
+            const objectStore = db.createObjectStore('reports', { keyPath: 'id' });
+            objectStore.createIndex('date', 'date', { unique: false });
+        }
+    };
+}
+
+/**
+ * Charge l'historique des rapports depuis IndexedDB
+ */
+function loadReportHistory() {
+    const request = indexedDB.open('StadiumMatchDB', 1);
+    
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        
+        if (!db.objectStoreNames.contains('reports')) {
+            displayReportHistory([]);
+            return;
+        }
+        
+        const transaction = db.transaction(['reports'], 'readonly');
+        const objectStore = transaction.objectStore('reports');
+        const getAllRequest = objectStore.getAll();
+        
+        getAllRequest.onsuccess = () => {
+            const reports = getAllRequest.result.sort((a, b) => b.timestamp - a.timestamp);
+            displayReportHistory(reports);
+        };
+    };
+    
+    request.onerror = () => {
+        console.error('Erreur lors du chargement de l\'historique');
+        displayReportHistory([]);
+    };
+}
+
+/**
+ * Affiche l'historique des rapports dans l'interface
+ */
+function displayReportHistory(reports) {
+    const historyContainer = document.getElementById('report-history');
+    if (!historyContainer) return;
+    
+    if (reports.length === 0) {
+        historyContainer.innerHTML = '<p class="no-events">Aucun rapport dans l\'historique</p>';
+        return;
+    }
+    
+    let html = '<div class="report-history-list">';
+    
+    reports.forEach(report => {
+        const date = new Date(report.date).toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        html += `
+            <div class="report-history-item">
+                <div class="report-history-info">
+                    <strong>${report.team1} ${report.score1} - ${report.score2} ${report.team2}</strong>
+                    <span class="report-history-date">${date}</span>
+                </div>
+                <div class="report-history-actions">
+                    <button class="btn btn-sm btn-info" onclick="viewReport(${report.id})">👁️ Voir</button>
+                    <button class="btn btn-sm btn-success" onclick="downloadReportFromHistory(${report.id}, 'pdf')">📄 PDF</button>
+                    <button class="btn btn-sm btn-primary" onclick="downloadReportFromHistory(${report.id}, 'word')">📝 Word</button>
+                    <button class="btn btn-sm btn-secondary" onclick="downloadReportFromHistory(${report.id}, 'txt')">📃 TXT</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteReport(${report.id})">🗑️</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    historyContainer.innerHTML = html;
+}
+
+/**
+ * Affiche un rapport depuis l'historique
+ */
+function viewReport(reportId) {
+    const request = indexedDB.open('StadiumMatchDB', 1);
+    
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        const transaction = db.transaction(['reports'], 'readonly');
+        const objectStore = transaction.objectStore('reports');
+        const getRequest = objectStore.get(reportId);
+        
+        getRequest.onsuccess = () => {
+            const report = getRequest.result;
+            if (report) {
+                const preview = document.getElementById('report-preview');
+                preview.innerHTML = report.html;
+                preview.style.display = 'block';
+                preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        };
+    };
+}
+
+/**
+ * Télécharge un rapport depuis l'historique
+ */
+function downloadReportFromHistory(reportId, format) {
+    const request = indexedDB.open('StadiumMatchDB', 1);
+    
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        const transaction = db.transaction(['reports'], 'readonly');
+        const objectStore = transaction.objectStore('reports');
+        const getRequest = objectStore.get(reportId);
+        
+        getRequest.onsuccess = () => {
+            const report = getRequest.result;
+            if (report) {
+                if (format === 'pdf') {
+                    const win = window.open('', '_blank');
+                    win.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Match — ${report.team1} vs ${report.team2}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #111; padding: 20px; }
+        .report-doc { max-width: 800px; margin: 0 auto; }
+        .report-header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 20px; }
+        .report-logo { font-size: 40px; }
+        .report-title { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; color: #1a1a2e; }
+        .report-date { font-size: 13px; color: #555; margin-top: 4px; }
+        .report-score-block { display: flex; align-items: center; justify-content: center; gap: 24px; background: #1a1a2e; color: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .report-team { flex: 1; text-align: center; }
+        .report-team-name { font-size: 20px; font-weight: 800; text-transform: uppercase; }
+        .report-score-center { display: flex; align-items: center; gap: 12px; }
+        .report-score-num { font-size: 48px; font-weight: 900; }
+        .report-score-sep { font-size: 32px; color: #aaa; }
+        .report-section { margin-bottom: 24px; }
+        .report-section-title { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #1a1a2e; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 12px; }
+        .stats-table { width: 100%; border-collapse: collapse; }
+        .stats-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .stat-label { text-align: center; font-weight: 600; color: #555; }
+        .stat-val { text-align: center; font-weight: 800; font-size: 18px; width: 25%; }
+        .events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .events-table th { background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; }
+        .events-table td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+        .event-goal { background: #fffde7; }
+        .event-yellow td:first-child { border-left: 4px solid #ffd700; }
+        .event-red td:first-child { border-left: 4px solid #ff4444; }
+        .event-sub td:first-child { border-left: 4px solid #00cc77; }
+        .ev-time { font-weight: 700; font-size: 12px; color: #555; white-space: nowrap; }
+        .ev-icon { font-size: 16px; width: 30px; }
+        .no-events { text-align: center; color: #aaa; font-style: italic; padding: 16px; }
+        .report-footer { margin-top: 32px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+        @media print {
+            body { padding: 10px; }
+            .report-score-block { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>${report.html}</body>
+</html>`);
+                    win.document.close();
+                    setTimeout(() => { win.print(); }, 500);
+                } else if (format === 'word') {
+                    const wordHTML = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Match</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; }
+        .report-doc { max-width: 800px; margin: 0 auto; }
+        .report-header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 20px; }
+        .report-logo { font-size: 40px; }
+        .report-title { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; color: #1a1a2e; }
+        .report-score-block { display: flex; align-items: center; justify-content: center; gap: 24px; background: #1a1a2e; color: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .report-team { flex: 1; text-align: center; }
+        .report-team-name { font-size: 20px; font-weight: 800; text-transform: uppercase; }
+        .report-score-center { display: flex; align-items: center; gap: 12px; }
+        .report-score-num { font-size: 48px; font-weight: 900; }
+        .report-section { margin-bottom: 24px; }
+        .report-section-title { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #1a1a2e; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 12px; }
+        .stats-table { width: 100%; border-collapse: collapse; }
+        .stats-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .stat-label { text-align: center; font-weight: 600; color: #555; }
+        .stat-val { text-align: center; font-weight: 800; font-size: 18px; width: 25%; }
+        .events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .events-table th { background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; }
+        .events-table td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+        .event-goal { background: #fffde7; }
+        .event-yellow td:first-child { border-left: 4px solid #ffd700; }
+        .event-red td:first-child { border-left: 4px solid #ff4444; }
+        .event-sub td:first-child { border-left: 4px solid #00cc77; }
+        .ev-time { font-weight: 700; font-size: 12px; color: #555; white-space: nowrap; }
+        .ev-icon { font-size: 16px; width: 30px; }
+        .no-events { text-align: center; color: #aaa; font-style: italic; padding: 16px; }
+        .report-footer { margin-top: 32px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+    </style>
+</head>
+<body>${report.html}</body>
+</html>`;
+                    
+                    const dateFile = new Date(report.date).toISOString().slice(0, 10);
+                    const filename = `rapport_${report.team1}_vs_${report.team2}_${dateFile}.doc`.replace(/\s+/g, '_');
+                    
+                    const blob = new Blob(['\ufeff', wordHTML], { type: 'application/msword' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else if (format === 'txt') {
+                    const dateFile = new Date(report.date).toISOString().slice(0, 10);
+                    const filename = `rapport_${report.team1}_vs_${report.team2}_${dateFile}.txt`.replace(/\s+/g, '_');
+                    
+                    const blob = new Blob([report.text], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            }
+        };
+    };
+}
+
+/**
+ * Supprime un rapport de l'historique
+ */
+function deleteReport(reportId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce rapport?')) return;
+    
+    const request = indexedDB.open('StadiumMatchDB', 1);
+    
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        const transaction = db.transaction(['reports'], 'readwrite');
+        const objectStore = transaction.objectStore('reports');
+        
+        const deleteRequest = objectStore.delete(reportId);
+        
+        deleteRequest.onsuccess = () => {
+            console.log('Rapport supprimé');
+            loadReportHistory();
+        };
+    };
+}
+
+/**
+ * Envoie le rapport au serveur
+ */
+function sendReportToServer() {
+    const serverUrl = document.getElementById('server-url').value;
+    
+    if (!serverUrl) {
+        alert('Veuillez entrer l\'URL du serveur');
+        return;
+    }
+    
+    const reportData = {
+        timestamp: Date.now(),
+        date: new Date().toISOString(),
+        team1: state.team1.name,
+        team2: state.team2.name,
+        score1: state.team1.score,
+        score2: state.team2.score,
+        phase: state.gamePhase,
+        stats: state.stats,
+        events: state.events,
+        html: buildReportHTML()
+    };
+    
+    fetch(serverUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reportData)
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('Rapport envoyé au serveur avec succès!');
+        } else {
+            alert('Erreur lors de l\'envoi au serveur');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion au serveur');
+    });
+}
+
+/**
+ * Construit le rapport en format texte brut
+ */
+function buildReportText() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    let text = `═══════════════════════════════════════════════════════════════\n`;
+    text += `                    RAPPORT DE MATCH\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    text += `Date: ${dateStr} à ${timeStr}\n`;
+    text += `Phase: ${state.gamePhase || 'Non définie'}\n\n`;
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                        SCORE FINAL\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    text += `${state.team1.name.toUpperCase()}  ${state.team1.score}  -  ${state.team2.score}  ${state.team2.name.toUpperCase()}\n\n`;
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                      STATISTIQUES\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    text += `Possession: ${state.stats.possession1}% - ${state.stats.possession2}%\n`;
+    text += `Tirs: ${state.stats.shots1} - ${state.stats.shots2}\n`;
+    text += `Corners: ${state.stats.corners1} - ${state.stats.corners2}\n\n`;
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                      ÉVÉNEMENTS\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    
+    if (state.events && state.events.length > 0) {
+        state.events.forEach(event => {
+            const teamName = event.team === 1 ? state.team1.name : state.team2.name;
+            text += `[${event.minute}'] ${teamName} - ${event.type}\n`;
+            if (event.scorer) text += `  Joueur: ${event.scorer}\n`;
+            if (event.assister) text += `  Passe: ${event.assister}\n`;
+            text += `\n`;
+        });
+    } else {
+        text += `Aucun événement enregistré\n\n`;
+    }
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                    Généré par Stadium Live Régie v2.1\n`;
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    
+    return text;
+}
+
+/**
+ * Formate le rapport HTML pour l'affichage sur stadium display
+ */
+function formatReportForDisplay(html) {
+    // Convertir le rapport en sections pour l'affichage
+    let formatted = '';
+    
+    // En-tête
+    formatted += '<div class="report-section">';
+    formatted += '<h3>📊 Score Final</h3>';
+    formatted += `<p><strong>${state.team1.name}</strong> ${state.team1.score} - ${state.team2.score} <strong>${state.team2.name}</strong></p>`;
+    formatted += '</div>';
+    
+    // Statistiques
+    formatted += '<div class="report-section">';
+    formatted += '<h3>📈 Statistiques</h3>';
+    formatted += `<p>Possession: ${state.stats.possession1}% - ${state.stats.possession2}%</p>`;
+    formatted += `<p>Tirs: ${state.stats.shots1} - ${state.stats.shots2}</p>`;
+    formatted += `<p>Corners: ${state.stats.corners1} - ${state.stats.corners2}</p>`;
+    formatted += '</div>';
+    
+    // Événements
+    formatted += '<div class="report-section">';
+    formatted += '<h3>⚽ Événements</h3>';
+    if (state.events && state.events.length > 0) {
+        state.events.forEach(event => {
+            const teamName = event.team === 1 ? state.team1.name : state.team2.name;
+            const icon = getEventIcon(event.type);
+            formatted += `<p>${icon} [${event.minute}'] ${teamName} - ${event.type}`;
+            if (event.scorer) formatted += ` (${event.scorer})`;
+            formatted += '</p>';
+        });
+    } else {
+        formatted += '<p>Aucun événement enregistré</p>';
+    }
+    formatted += '</div>';
+    
+    return formatted;
+}
+
+/**
+ * Retourne l'icône correspondant au type d'événement
+ */
+function getEventIcon(type) {
+    const icons = {
+        'goal': '⚽',
+        'yellow-card': '🟨',
+        'red-card': '🟥',
+        'substitution': '🔄'
+    };
+    return icons[type] || '📋';
 }
 
 /**

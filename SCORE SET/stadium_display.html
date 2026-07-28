@@ -241,6 +241,20 @@
         </div>
     </div>
 
+    <!-- Match Report Display -->
+    <div class="report-display" id="report-display" style="display: none;" role="dialog" aria-label="Rapport de match">
+        <div class="report-header">
+            <h2 class="report-title">📋 Rapport de Match</h2>
+            <div class="report-actions">
+                <button class="report-action-btn" onclick="downloadReportPDF()" aria-label="Télécharger PDF">📄 PDF</button>
+                <button class="report-action-btn" onclick="downloadReportWord()" aria-label="Télécharger Word">📝 Word</button>
+                <button class="report-action-btn" onclick="downloadReportTXT()" aria-label="Télécharger TXT">📃 TXT</button>
+            </div>
+            <button class="report-close-btn" onclick="hideReportDisplay()" aria-label="Fermer le rapport">✕</button>
+        </div>
+        <div class="report-content" id="report-content-display"></div>
+    </div>
+
     <!-- ============================================================
          BANDEAU DÉFILANT - Messages d'information
          ============================================================ -->

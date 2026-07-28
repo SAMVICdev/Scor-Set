@@ -273,6 +273,9 @@ function updateDisplay(skipMediaUpdate = false) {
 
     // Gestion des événements
     handleEvents();
+    
+    // Affichage du rapport de match
+    updateReportDisplay();
 }
 
 /**
@@ -1088,6 +1091,343 @@ function videoForward(e) {
         mediaVideo.currentTime = Math.min(mediaVideo.duration, mediaVideo.currentTime + 10);
         log('Vidéo avancée de 10 secondes');
     }
+}
+
+// ============================================================
+// GESTION DU RAPPORT DE MATCH - Affichage sur écran
+// ============================================================
+function updateReportDisplay() {
+    if (!state.report || !state.report.html) {
+        hideReportDisplay();
+        return;
+    }
+    
+    const reportDisplay = document.getElementById('report-display');
+    const reportContent = document.getElementById('report-content-display');
+    
+    if (reportDisplay && reportContent) {
+        reportContent.innerHTML = state.report.html;
+        reportDisplay.style.display = 'flex';
+        log('Rapport affiché sur l\'écran');
+    }
+}
+
+function hideReportDisplay() {
+    const reportDisplay = document.getElementById('report-display');
+    if (reportDisplay) {
+        reportDisplay.style.display = 'none';
+        log('Rapport masqué');
+    }
+}
+
+// ============================================================
+// TÉLÉCHARGEMENT DU RAPPORT - PDF, Word, TXT
+// ============================================================
+function downloadReportPDF() {
+    const reportHTML = buildReportHTML();
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Match — ${state.team1.name} vs ${state.team2.name}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #111; padding: 20px; }
+        .report-doc { max-width: 800px; margin: 0 auto; }
+        .report-header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 20px; }
+        .report-logo { font-size: 40px; }
+        .report-title { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; color: #1a1a2e; }
+        .report-date, .report-phase { font-size: 13px; color: #555; margin-top: 4px; }
+        .report-score-block { display: flex; align-items: center; justify-content: center; gap: 24px; background: #1a1a2e; color: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .report-team { flex: 1; text-align: center; }
+        .report-team-name { font-size: 20px; font-weight: 800; text-transform: uppercase; }
+        .report-score-center { display: flex; align-items: center; gap: 12px; }
+        .report-score-num { font-size: 48px; font-weight: 900; }
+        .report-score-sep { font-size: 32px; color: #aaa; }
+        .report-section { margin-bottom: 24px; }
+        .report-section-title { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #1a1a2e; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 12px; }
+        .stats-table { width: 100%; border-collapse: collapse; }
+        .stats-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .stat-label { text-align: center; font-weight: 600; color: #555; }
+        .stat-val { text-align: center; font-weight: 800; font-size: 18px; width: 25%; }
+        .events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .events-table th { background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; }
+        .events-table td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+        .event-goal { background: #fffde7; }
+        .event-yellow td:first-child { border-left: 4px solid #ffd700; }
+        .event-red td:first-child { border-left: 4px solid #ff4444; }
+        .event-sub td:first-child { border-left: 4px solid #00cc77; }
+        .ev-time { font-weight: 700; font-size: 12px; color: #555; white-space: nowrap; }
+        .ev-icon { font-size: 16px; width: 30px; }
+        .rep-out { color: #ff4444; font-weight: 700; }
+        .rep-in  { color: #00aa55; font-weight: 700; }
+        .no-events { text-align: center; color: #aaa; font-style: italic; padding: 16px; }
+        .report-rosters { display: flex; gap: 24px; }
+        .roster-col { flex: 1; }
+        .roster-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .roster-table th { background: #f5f5f5; padding: 6px 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        .roster-table td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+        .role-tit { color: #00aa55; font-weight: 700; }
+        .role-rem { color: #6495ed; font-weight: 700; }
+        .no-data { color: #aaa; font-style: italic; font-size: 12px; }
+        .report-footer { margin-top: 32px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+        @media print {
+            body { padding: 10px; }
+            .report-score-block { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>${reportHTML}</body>
+</html>`);
+    win.document.close();
+    setTimeout(() => { win.print(); }, 500);
+    log('Téléchargement PDF initié');
+}
+
+function downloadReportWord() {
+    const reportHTML = buildReportHTML();
+    const now = new Date();
+    const dateFile = now.toISOString().slice(0, 10);
+    const filename = `rapport_${state.team1.name}_vs_${state.team2.name}_${dateFile}.doc`.replace(/\s+/g, '_');
+
+    const wordHTML = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Match</title>
+    <!--[if gte mso 9]>
+    <xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml>
+    <![endif]-->
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; }
+        .report-doc { max-width: 800px; margin: 0 auto; }
+        .report-header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #1a1a2e; padding-bottom: 16px; margin-bottom: 20px; }
+        .report-logo { font-size: 40px; }
+        .report-title { font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; color: #1a1a2e; }
+        .report-score-block { display: flex; align-items: center; justify-content: center; gap: 24px; background: #1a1a2e; color: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .report-team { flex: 1; text-align: center; }
+        .report-team-name { font-size: 20px; font-weight: 800; text-transform: uppercase; }
+        .report-score-center { display: flex; align-items: center; gap: 12px; }
+        .report-score-num { font-size: 48px; font-weight: 900; }
+        .report-section { margin-bottom: 24px; }
+        .report-section-title { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #1a1a2e; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-bottom: 12px; }
+        .stats-table { width: 100%; border-collapse: collapse; }
+        .stats-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+        .stat-label { text-align: center; font-weight: 600; color: #555; }
+        .stat-val { text-align: center; font-weight: 800; font-size: 18px; width: 25%; }
+        .events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .events-table th { background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; }
+        .events-table td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+        .event-goal { background: #fffde7; }
+        .event-yellow td:first-child { border-left: 4px solid #ffd700; }
+        .event-red td:first-child { border-left: 4px solid #ff4444; }
+        .event-sub td:first-child { border-left: 4px solid #00cc77; }
+        .ev-time { font-weight: 700; font-size: 12px; color: #555; white-space: nowrap; }
+        .ev-icon { font-size: 16px; width: 30px; }
+        .rep-out { color: #ff4444; font-weight: 700; }
+        .rep-in  { color: #00aa55; font-weight: 700; }
+        .no-events { text-align: center; color: #aaa; font-style: italic; padding: 16px; }
+        .report-rosters { display: flex; gap: 24px; }
+        .roster-col { flex: 1; }
+        .roster-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .roster-table th { background: #f5f5f5; padding: 6px 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        .roster-table td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+        .role-tit { color: #00aa55; font-weight: 700; }
+        .role-rem { color: #6495ed; font-weight: 700; }
+        .no-data { color: #aaa; font-style: italic; font-size: 12px; }
+        .report-footer { margin-top: 32px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+    </style>
+</head>
+<body>${reportHTML}</body>
+</html>`;
+
+    const blob = new Blob(['\ufeff', wordHTML], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log('Téléchargement Word initié');
+}
+
+function downloadReportTXT() {
+    const reportText = buildReportText();
+    const now = new Date();
+    const dateFile = now.toISOString().slice(0, 10);
+    const filename = `rapport_${state.team1.name}_vs_${state.team2.name}_${dateFile}.txt`.replace(/\s+/g, '_');
+    
+    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log('Téléchargement TXT initié');
+}
+
+/**
+ * Construit le rapport en format texte brut
+ */
+function buildReportText() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    let text = `═══════════════════════════════════════════════════════════════\n`;
+    text += `                    RAPPORT DE MATCH\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    text += `Date: ${dateStr} à ${timeStr}\n`;
+    text += `Phase: ${state.gamePhase || 'Non définie'}\n\n`;
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                        SCORE FINAL\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    text += `${state.team1.name.toUpperCase()}  ${state.team1.score}  -  ${state.team2.score}  ${state.team2.name.toUpperCase()}\n\n`;
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                      STATISTIQUES\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    text += `Possession: ${state.stats.possession1}% - ${state.stats.possession2}%\n`;
+    text += `Tirs: ${state.stats.shots1} - ${state.stats.shots2}\n`;
+    text += `Corners: ${state.stats.corners1} - ${state.stats.corners2}\n\n`;
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                      ÉVÉNEMENTS\n`;
+    text += `═══════════════════════════════════════════════════════════════\n\n`;
+    
+    if (state.events && state.events.length > 0) {
+        state.events.forEach(event => {
+            const teamName = event.team === 1 ? state.team1.name : state.team2.name;
+            text += `[${event.minute}'] ${teamName} - ${event.type}\n`;
+            if (event.scorer) text += `  Joueur: ${event.scorer}\n`;
+            if (event.assister) text += `  Passe: ${event.assister}\n`;
+            text += `\n`;
+        });
+    } else {
+        text += `Aucun événement enregistré\n\n`;
+    }
+    
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    text += `                    Généré par Stadium Live Régie v2.1\n`;
+    text += `═══════════════════════════════════════════════════════════════\n`;
+    
+    return text;
+}
+
+/**
+ * Construit le rapport HTML complet
+ */
+function buildReportHTML() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    let html = `<div class="report-doc">`;
+    
+    // Header
+    html += `<div class="report-header">
+        <div class="report-logo">⚽</div>
+        <div>
+            <div class="report-title">RAPPORT DE MATCH</div>
+            <div class="report-date">${dateStr} à ${timeStr}</div>
+            <div class="report-phase">Phase: ${state.gamePhase || 'Non définie'}</div>
+        </div>
+    </div>`;
+    
+    // Score
+    html += `<div class="report-score-block">
+        <div class="report-team">
+            <div class="report-team-name">${state.team1.name}</div>
+        </div>
+        <div class="report-score-center">
+            <div class="report-score-num">${state.team1.score}</div>
+            <div class="report-score-sep">-</div>
+            <div class="report-score-num">${state.team2.score}</div>
+        </div>
+        <div class="report-team">
+            <div class="report-team-name">${state.team2.name}</div>
+        </div>
+    </div>`;
+    
+    // Stats
+    html += `<div class="report-section">
+        <div class="report-section-title">STATISTIQUES</div>
+        <table class="stats-table">
+            <tr>
+                <td class="stat-label">Possession</td>
+                <td class="stat-val">${state.stats.possession1}%</td>
+                <td class="stat-val">${state.stats.possession2}%</td>
+            </tr>
+            <tr>
+                <td class="stat-label">Tirs</td>
+                <td class="stat-val">${state.stats.shots1}</td>
+                <td class="stat-val">${state.stats.shots2}</td>
+            </tr>
+            <tr>
+                <td class="stat-label">Corners</td>
+                <td class="stat-val">${state.stats.corners1}</td>
+                <td class="stat-val">${state.stats.corners2}</td>
+            </tr>
+        </table>
+    </div>`;
+    
+    // Events
+    html += `<div class="report-section">
+        <div class="report-section-title">ÉVÉNEMENTS</div>`;
+    
+    if (state.events && state.events.length > 0) {
+        html += `<table class="events-table">
+            <thead>
+                <tr>
+                    <th>Temps</th>
+                    <th>Équipe</th>
+                    <th>Type</th>
+                    <th>Joueur</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        
+        state.events.forEach(event => {
+            const teamName = event.team === 1 ? state.team1.name : state.team2.name;
+            const eventClass = event.type === 'goal' ? 'event-goal' : 
+                              event.type === 'yellow-card' ? 'event-yellow' :
+                              event.type === 'red-card' ? 'event-red' : 'event-sub';
+            const icon = event.type === 'goal' ? '⚽' :
+                        event.type === 'yellow-card' ? '🟨' :
+                        event.type === 'red-card' ? '🟥' : '🔄';
+            
+            html += `<tr class="${eventClass}">
+                <td class="ev-time">${event.minute}'</td>
+                <td class="ev-icon">${icon} ${teamName}</td>
+                <td>${event.type}</td>
+                <td>${event.scorer || '-'}</td>
+            </tr>`;
+        });
+        
+        html += `</tbody></table>`;
+    } else {
+        html += `<div class="no-events">Aucun événement enregistré</div>`;
+    }
+    
+    html += `</div>`;
+    
+    // Footer
+    html += `<div class="report-footer">
+        Généré par Stadium Live Régie v2.1
+    </div>`;
+    
+    html += `</div>`;
+    
+    return html;
 }
 
 // ============================================================

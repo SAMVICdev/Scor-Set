@@ -493,12 +493,29 @@
                 <div class="option-card-content" id="report-content">
                     <div class="report-actions">
                         <button class="btn btn-primary" onclick="generateMatchReport()">📋 Générer le Rapport</button>
-                        <button class="btn btn-success" id="btn-download-pdf" onclick="downloadReportPDF()"
-                            style="display:none;">📄 Télécharger PDF</button>
-                        <button class="btn btn-info" id="btn-download-word" onclick="downloadReportWord()"
-                            style="display:none;">📝 Télécharger Word</button>
+                        <button class="btn btn-warning" id="btn-display-report" onclick="displayReportOnScreen()">🖥️ Afficher sur Écran</button>
+                        <button class="btn btn-success" id="btn-download-pdf" onclick="downloadReportPDF()">📄 Télécharger PDF</button>
+                        <button class="btn btn-info" id="btn-download-word" onclick="downloadReportWord()">📝 Télécharger Word</button>
+                        <button class="btn btn-secondary" id="btn-download-txt" onclick="downloadReportTXT()">📃 Télécharger TXT</button>
                     </div>
                     <div class="report-preview" id="report-preview" style="display:none;"></div>
+                    
+                    <!-- Historique des rapports -->
+                    <div class="report-history-section" style="margin-top: 20px;">
+                        <h3 style="color: #00ff88; margin-bottom: 10px;">📚 Historique des Rapports</h3>
+                        <div class="report-history" id="report-history"></div>
+                    </div>
+                    
+                    <!-- Configuration serveur -->
+                    <div class="server-config" style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <h3 style="color: #00ff88; margin-bottom: 10px;">🌐 Configuration Serveur</h3>
+                        <div class="media-input">
+                            <label>URL du serveur:</label>
+                            <input type="text" id="server-url" placeholder="https://votre-serveur.com/api/reports" 
+                                style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
+                        </div>
+                        <button class="btn btn-primary" onclick="sendReportToServer()" style="margin-top: 10px;">☁️ Envoyer au Serveur</button>
+                    </div>
                 </div>
             </div>
 
