@@ -241,6 +241,12 @@
                     <div class="discipline-card">
                         <h4>📺 VAR</h4>
                         <button class="btn btn-primary" onclick="showVAR()">📺 VAR Review</button>
+                        <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                            <button class="btn btn-sm" style="background: #00cc77;" onclick="showVARResult('goal-confirmed')">⚽ But validé</button>
+                            <button class="btn btn-sm" style="background: #ff6b6b;" onclick="showVARResult('goal-disallowed')">❌ But refusé</button>
+                            <button class="btn btn-sm" style="background: #ffd93d;" onclick="showVARResult('penalty')">🥅 Pénalty</button>
+                            <button class="btn btn-sm" style="background: #6495ed;" onclick="showVARResult('no-change')">↩️ Pas de changement</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -494,6 +500,7 @@
                     <div class="report-actions">
                         <button class="btn btn-primary" onclick="generateMatchReport()">📋 Générer le Rapport</button>
                         <button class="btn btn-warning" id="btn-display-report" onclick="displayReportOnScreen()">🖥️ Afficher sur Écran</button>
+                        <button class="btn btn-danger" id="btn-hide-report" onclick="hideReportFromControl()">❌ Fermer sur Écran</button>
                         <button class="btn btn-success" id="btn-download-pdf" onclick="downloadReportPDF()">📄 Télécharger PDF</button>
                         <button class="btn btn-info" id="btn-download-word" onclick="downloadReportWord()">📝 Télécharger Word</button>
                         <button class="btn btn-secondary" id="btn-download-txt" onclick="downloadReportTXT()">📃 Télécharger TXT</button>
@@ -515,6 +522,43 @@
                                 style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
                         </div>
                         <button class="btn btn-primary" onclick="sendReportToServer()" style="margin-top: 10px;">☁️ Envoyer au Serveur</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ---- Fonctionnalité 3 : Diffusion d'Écran ---- -->
+            <div class="option-card" id="option-share">
+                <div class="option-card-header" onclick="toggleOptionCard('share-content')">
+                    <span class="option-card-icon">📡</span>
+                    <span class="option-card-label">Diffusion d'Écran</span>
+                    <span class="option-card-arrow" id="arrow-share-content">▼</span>
+                </div>
+                <div class="option-card-content" id="share-content">
+                    <div class="share-section">
+                        <h3 style="color: #00ff88; margin-bottom: 15px;">🔗 Partager par Lien</h3>
+                        <div class="media-input">
+                            <label>Lien de l'écran d'affichage:</label>
+                            <input type="text" id="stadium-display-url" readonly 
+                                style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
+                        </div>
+                        <div class="share-actions" style="margin-top: 10px;">
+                            <button class="btn btn-primary" onclick="copyDisplayUrl()">📋 Copier le Lien</button>
+                            <button class="btn btn-info" onclick="generateQRCode()">📱 Générer QR Code</button>
+                        </div>
+                        <div id="qr-code-container" style="margin-top: 15px; text-align: center; display: none;">
+                            <div id="qr-code" style="display: inline-block; background: white; padding: 10px; border-radius: 8px;"></div>
+                            <p style="margin-top: 10px; color: rgba(255,255,255,0.7);">Scannez pour accéder à l'écran</p>
+                        </div>
+                    </div>
+                    
+                    <div class="share-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <h3 style="color: #00ff88; margin-bottom: 15px;">🖥️ Partage d'Écran en Direct</h3>
+                        <p style="color: rgba(255,255,255,0.7); margin-bottom: 15px;">Partagez votre écran en temps réel avec d'autres appareils</p>
+                        <div class="share-actions">
+                            <button class="btn btn-success" id="btn-start-share" onclick="startScreenShare()">▶️ Démarrer le Partage</button>
+                            <button class="btn btn-danger" id="btn-stop-share" onclick="stopScreenShare()" style="display: none;">⏹️ Arrêter le Partage</button>
+                        </div>
+                        <div id="share-status" style="margin-top: 10px; color: rgba(255,255,255,0.7);"></div>
                     </div>
                 </div>
             </div>

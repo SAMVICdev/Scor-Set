@@ -1459,6 +1459,9 @@ function handleEvents() {
         case 'var':
             showVAR(lastEvent);
             break;
+        case 'var-result':
+            showVARResult(lastEvent);
+            break;
     }
 
     // Mark as handled
@@ -1603,6 +1606,57 @@ function showSubstitution(event) {
  */
 function showVAR(event) {
     const modal = document.getElementById('var-modal');
+    modal.classList.add('active');
+
+    setTimeout(() => {
+        modal.classList.remove('active');
+    }, CONSTANTS.VAR_DURATION);
+}
+
+/**
+ * Affiche le résultat de la VAR
+ * @param {Object} event - Événement var-result
+ */
+function showVARResult(event) {
+    const modal = document.getElementById('var-result-modal');
+    const titleEl = document.getElementById('var-result-title');
+    const iconEl = document.getElementById('var-result-icon');
+    const descEl = document.getElementById('var-result-desc');
+
+    const resultMessages = {
+        'goal-confirmed': {
+            title: 'BUT VALIDÉ',
+            icon: '⚽',
+            desc: 'La décision est confirmée',
+            color: '#00cc77'
+        },
+        'goal-disallowed': {
+            title: 'BUT REFUSÉ',
+            icon: '❌',
+            desc: 'Le but est annulé',
+            color: '#ff6b6b'
+        },
+        'penalty': {
+            title: 'PÉNALITY',
+            icon: '🥅',
+            desc: 'Pénalty accordé',
+            color: '#ffd93d'
+        },
+        'no-change': {
+            title: 'PAS DE CHANGEMENT',
+            icon: '↩️',
+            desc: 'La décision initiale est maintenue',
+            color: '#6495ed'
+        }
+    };
+
+    const result = resultMessages[event.result] || resultMessages['no-change'];
+    titleEl.textContent = result.title;
+    iconEl.textContent = result.icon;
+    descEl.textContent = result.desc;
+    modal.style.borderColor = result.color;
+    iconEl.style.color = result.color;
+
     modal.classList.add('active');
 
     setTimeout(() => {

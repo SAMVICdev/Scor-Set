@@ -775,6 +775,16 @@ function showVAR() {
     saveState();
 }
 
+function showVARResult(result) {
+    state.events.push({
+        type: 'var-result',
+        result: result,
+        handled: false
+    });
+
+    saveState();
+}
+
 // ============================================================
 // STATISTIQUES - Gestion des stats du match
 // ============================================================
@@ -1397,6 +1407,7 @@ document.addEventListener('keydown', (e) => {
 // Charger l'historique des rapports au démarrage
 document.addEventListener('DOMContentLoaded', () => {
     loadReportHistory();
+    initDisplayUrl();
 });
 
 /**
@@ -1774,6 +1785,18 @@ function buildReportHTML() {
                 desc = 'VAR Review';
                 teamName = '';
                 break;
+            case 'var-result': {
+                const resultMessages = {
+                    'goal-confirmed': 'But validé',
+                    'goal-disallowed': 'But refusé',
+                    'penalty': 'Pénalty',
+                    'no-change': 'Pas de changement'
+                };
+                icon = '📺';
+                desc = `VAR — ${resultMessages[ev.result] || 'Résultat'}`;
+                teamName = '';
+                break;
+            }
             default:
                 icon = '•';
                 desc = ev.type;
@@ -1986,7 +2009,24 @@ function displayReportOnScreen() {
     event.newValue = JSON.stringify(state);
     window.dispatchEvent(event);
     
-    alert('Rapport envoyé à l\'écran stadium display!');
+    log('Rapport envoyé à l\'écran stadium display');
+}
+
+/**
+ * Ferme le rapport sur l'écran stadium display depuis control_panel
+ */
+function hideReportFromControl() {
+    // Supprimer le rapport du state
+    state.report = null;
+    localStorage.setItem('stadium_match_state', JSON.stringify(state));
+    
+    // Envoyer un événement pour déclencher la fermeture
+    const event = new Event('storage');
+    event.key = 'stadium_match_state';
+    event.newValue = JSON.stringify(state);
+    window.dispatchEvent(event);
+    
+    log('Rapport fermé sur l\'écran stadium display');
 }
 
 /**
@@ -2326,12 +2366,12 @@ function deleteReport(reportId) {
  */
 function sendReportToServer() {
     const serverUrl = document.getElementById('server-url').value;
-    
+
     if (!serverUrl) {
         alert('Veuillez entrer l\'URL du serveur');
         return;
     }
-    
+
     const reportData = {
         timestamp: Date.now(),
         date: new Date().toISOString(),
@@ -2344,7 +2384,7 @@ function sendReportToServer() {
         events: state.events,
         html: buildReportHTML()
     };
-    
+
     fetch(serverUrl, {
         method: 'POST',
         headers: {
@@ -2363,6 +2403,170 @@ function sendReportToServer() {
         console.error('Erreur:', error);
         alert('Erreur de connexion au serveur');
     });
+}
+
+// ============================================================
+// DIFFUSION D'ÉCRAN - Partage par lien et WebRTC
+// ============================================================
+let screenShareStream = null;
+let screenShareConnection = null;
+
+/**
+ * Initialise l'URL de stadium_display
+ */
+function initDisplayUrl() {
+    const urlInput = document.getElementById('stadium-display-url');
+    if (urlInput) {
+        const currentUrl = window.location.href;
+        const displayUrl = currentUrl.replace('control_panel.html', 'stadium_display.html');
+        urlInput.value = displayUrl;
+    }
+}
+
+/**
+ * Copie l'URL de stadium_display dans le presse-papier
+ */
+function copyDisplayUrl() {
+    const urlInput = document.getElementById('stadium-display-url');
+    if (urlInput && urlInput.value) {
+        urlInput.select();
+        urlInput.setSelectionRange(0, 99999);
+        
+        try {
+            navigator.clipboard.writeText(urlInput.value).then(() => {
+                alert('Lien copié dans le presse-papier!');
+            }).catch(err => {
+                // Fallback pour les navigateurs plus anciens
+                document.execCommand('copy');
+                alert('Lien copié dans le presse-papier!');
+            });
+        } catch (err) {
+            console.error('Erreur lors de la copie:', err);
+            alert('Erreur lors de la copie du lien');
+        }
+    }
+}
+
+/**
+ * Génère un QR code pour l'URL de stadium_display
+ */
+function generateQRCode() {
+    const urlInput = document.getElementById('stadium-display-url');
+    const qrContainer = document.getElementById('qr-code-container');
+    const qrCodeDiv = document.getElementById('qr-code');
+    
+    if (!urlInput || !urlInput.value) {
+        alert('URL non disponible');
+        return;
+    }
+    
+    // Nettoyer le QR code existant
+    qrCodeDiv.innerHTML = '';
+    
+    // Utiliser une API de service QR Code externe (plus fiable)
+    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(urlInput.value)}`;
+    
+    const img = document.createElement('img');
+    img.src = apiUrl;
+    img.alt = 'QR Code';
+    img.style.width = '200px';
+    img.style.height = '200px';
+    img.style.borderRadius = '8px';
+    
+    img.onload = () => {
+        qrCodeDiv.appendChild(img);
+        qrContainer.style.display = 'block';
+    };
+    
+    img.onerror = () => {
+        console.error('Erreur lors du chargement de l\'image QR Code');
+        alert('Erreur lors de la génération du QR code');
+    };
+}
+
+/**
+ * Démarre le partage d'écran via WebRTC
+ */
+function startScreenShare() {
+    const statusDiv = document.getElementById('share-status');
+    const startBtn = document.getElementById('btn-start-share');
+    const stopBtn = document.getElementById('btn-stop-share');
+    
+    // Vérifier si le navigateur supporte le partage d'écran
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        statusDiv.textContent = '❌ Votre navigateur ne supporte pas le partage d\'écran';
+        statusDiv.style.color = '#ff4444';
+        return;
+    }
+    
+    statusDiv.textContent = '⏳ Sélectionnez l\'écran à partager...';
+    statusDiv.style.color = '#00ff88';
+    
+    // Demander à l'utilisateur de sélectionner l'écran
+    navigator.mediaDevices.getDisplayMedia({
+        video: {
+            cursor: 'always'
+        },
+        audio: false
+    })
+    .then(stream => {
+        screenShareStream = stream;
+        
+        // Afficher le flux dans une vidéo cachée pour le traitement
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.autoplay = true;
+        video.style.display = 'none';
+        document.body.appendChild(video);
+        
+        statusDiv.textContent = '✅ Partage d\'écran actif - Les autres peuvent voir votre écran';
+        statusDiv.style.color = '#00ff88';
+        
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-block';
+        
+        // Gérer l'arrêt du partage par l'utilisateur
+        stream.getVideoTracks()[0].onended = () => {
+            stopScreenShare();
+        };
+        
+        log('Partage d\'écran démarré');
+    })
+    .catch(err => {
+        console.error('Erreur lors du partage d\'écran:', err);
+        if (err.name === 'NotAllowedError') {
+            statusDiv.textContent = '❌ Partage d\'écran annulé par l\'utilisateur';
+        } else {
+            statusDiv.textContent = '❌ Erreur lors du partage d\'écran: ' + err.message;
+        }
+        statusDiv.style.color = '#ff4444';
+    });
+}
+
+/**
+ * Arrête le partage d'écran
+ */
+function stopScreenShare() {
+    const statusDiv = document.getElementById('share-status');
+    const startBtn = document.getElementById('btn-start-share');
+    const stopBtn = document.getElementById('btn-stop-share');
+    
+    if (screenShareStream) {
+        // Arrêter toutes les pistes
+        screenShareStream.getTracks().forEach(track => {
+            track.stop();
+        });
+        
+        screenShareStream = null;
+    }
+    
+    statusDiv.textContent = '⏹️ Partage d\'écran arrêté';
+    statusDiv.style.color = 'rgba(255,255,255,0.7)';
+    
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+    
+    log('Partage d\'écran arrêté');
 }
 
 /**
