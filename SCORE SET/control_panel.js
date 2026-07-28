@@ -1409,7 +1409,43 @@ document.addEventListener('DOMContentLoaded', () => {
     loadReportHistory();
     initDisplayUrl();
     changeHelpLanguage(); // Charger le contenu d'aide par défaut
+    checkFirstLaunch(); // Vérifier si c'est le premier lancement
 });
+
+/**
+ * Vérifie si c'est le premier lancement de l'application
+ */
+function checkFirstLaunch() {
+    const hasSeenGuide = localStorage.getItem('scorset_guide_seen');
+    if (!hasSeenGuide) {
+        // Premier lancement - afficher le guide
+        setTimeout(() => {
+            document.getElementById('user-guide-overlay').classList.add('active');
+        }, 500); // Petit délai pour que l'interface se charge d'abord
+    }
+}
+
+/**
+ * Ferme le guide utilisateur et sauvegarde la préférence
+ */
+function closeUserGuide() {
+    const dontShowCheckbox = document.getElementById('dont-show-guide');
+    
+    if (dontShowCheckbox.checked) {
+        // Sauvegarder que l'utilisateur ne veut plus voir le guide
+        localStorage.setItem('scorset_guide_seen', 'true');
+    }
+    
+    document.getElementById('user-guide-overlay').classList.remove('active');
+}
+
+/**
+ * Réaffiche le guide utilisateur (appelable depuis les options)
+ */
+function showUserGuide() {
+    document.getElementById('user-guide-overlay').classList.add('active');
+    document.getElementById('dont-show-guide').checked = false;
+}
 
 /**
  * Change la langue de la section Aide & Contact

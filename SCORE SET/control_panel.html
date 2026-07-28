@@ -9,6 +9,68 @@
 </head>
 
 <body>
+    <!-- Modal Guide Utilisateur (Premier lancement) -->
+    <div class="user-guide-overlay" id="user-guide-overlay">
+        <div class="user-guide-modal" id="user-guide-modal">
+            <div class="user-guide-header">
+                <h2 class="user-guide-title">👋 Bienvenue sur Scor-Set !</h2>
+                <button class="user-guide-close" onclick="closeUserGuide()" aria-label="Fermer">✕</button>
+            </div>
+            <div class="user-guide-content">
+                <div class="user-guide-section">
+                    <h3 class="user-guide-section-title">📋 Guide de démarrage</h3>
+                    <p class="user-guide-intro">Découvrez les fonctionnalités de Scor-Set et ce qui nécessite une connexion internet.</p>
+                </div>
+
+                <div class="user-guide-section">
+                    <h4 class="user-guide-subtitle">🌐 Fonctionnalités nécessitant INTERNET</h4>
+                    <ul class="user-guide-list online">
+                        <li><strong>🎬 Recherche YouTube:</strong> Pour rechercher et afficher des vidéos</li>
+                        <li><strong>🔗 Réseaux sociaux:</strong> Liens vers LinkedIn, Facebook, TikTok</li>
+                        <li><strong>📡 Partage d'écran:</strong> Pour diffuser en temps réel</li>
+                        <li><strong>☁️ Envoi au serveur:</strong> Pour sauvegarder les rapports sur un serveur distant</li>
+                        <li><strong>📱 QR Code:</strong> Pour générer des codes QR de partage</li>
+                    </ul>
+                </div>
+
+                <div class="user-guide-section">
+                    <h4 class="user-guide-subtitle">📴 Fonctionnalités HORS LIGNE (sans internet)</h4>
+                    <ul class="user-guide-list offline">
+                        <li><strong>⚽ Gestion du score:</strong> Ajout/retrait de buts</li>
+                        <li><strong>⏱️ Chronomètre:</strong> Gestion du temps du match</li>
+                        <li><strong>👥 Effectifs:</strong> Gestion des joueurs, numéros, postes</li>
+                        <li><strong>🟨🟥 Discipline:</strong> Cartons jaunes et rouges</li>
+                        <li><strong>🔄 Remplacements:</strong> Gestion des entrées/sorties</li>
+                        <li><strong>📺 VAR:</strong> Affichage des vérifications VAR</li>
+                        <li><strong>🎨 Thèmes:</strong> Personnalisation de l'affichage</li>
+                        <li><strong>🖼️ Logos:</strong> Ajout des logos des équipes (stockage local)</li>
+                        <li><strong>📋 Rapports:</strong> Génération de rapports PDF, Word, TXT</li>
+                        <li><strong>💾 Sauvegarde:</strong> Stockage automatique dans localStorage</li>
+                    </ul>
+                </div>
+
+                <div class="user-guide-section">
+                    <h4 class="user-guide-subtitle">💡 Conseils d'utilisation</h4>
+                    <ul class="user-guide-list tips">
+                        <li>Configurez les équipes avant de commencer le match</li>
+                        <li>Sauvegardez régulièrement votre configuration</li>
+                        <li>Utilisez le bouton "Réinitialiser le Match" entre deux matchs</li>
+                        <li>Ouvrez l'affichage stade dans un nouvel onglet pour un meilleur contrôle</li>
+                        <li>Pour l'aide complète, allez dans "Options Avancées" → "Aide & Contact"</li>
+                    </ul>
+                </div>
+
+                <div class="user-guide-actions">
+                    <label class="user-guide-checkbox">
+                        <input type="checkbox" id="dont-show-guide">
+                        <span>Ne plus afficher ce guide</span>
+                    </label>
+                    <button class="btn btn-primary user-guide-btn" onclick="closeUserGuide()">Compris ! 👍</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <!-- ============================================================
              BARRE LATÉRALE - Configuration et prévisualisation
@@ -571,6 +633,14 @@
                     <span class="option-card-arrow" id="arrow-help-content">▼</span>
                 </div>
                 <div class="option-card-content" id="help-content">
+                    
+                    <!-- Bouton pour réafficher le guide -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(233, 69, 96, 0.1); border: 2px solid rgba(233, 69, 96, 0.3); border-radius: 10px; text-align: center;">
+                        <p style="color: rgba(255,255,255,0.8); margin-bottom: 10px;">📚 Besoin d'un rappel sur le fonctionnement de l'application ?</p>
+                        <button class="btn btn-primary" onclick="showUserGuide()" style="background: linear-gradient(135deg, #e94560, #ff6b6b);">
+                            👋 Réafficher le guide de démarrage
+                        </button>
+                    </div>
                     
                     <!-- Sélection de langue -->
                     <div class="help-language-selector" style="margin-bottom: 20px;">
