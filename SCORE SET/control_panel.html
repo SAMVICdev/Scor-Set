@@ -563,6 +563,88 @@
                 </div>
             </div>
 
+            <!-- ---- Fonctionnalité 4 : Aide & Contact ---- -->
+            <div class="option-card" id="option-help">
+                <div class="option-card-header" onclick="toggleOptionCard('help-content')">
+                    <span class="option-card-icon">❓</span>
+                    <span class="option-card-label">Aide & Contact</span>
+                    <span class="option-card-arrow" id="arrow-help-content">▼</span>
+                </div>
+                <div class="option-card-content" id="help-content">
+                    
+                    <!-- Sélection de langue -->
+                    <div class="help-language-selector" style="margin-bottom: 20px;">
+                        <label style="color: #00ff88; margin-right: 10px;">🌍 Langue / Language:</label>
+                        <select id="help-language" onchange="changeHelpLanguage()" style="padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
+                            <option value="fr">🇫🇷 Français</option>
+                            <option value="en">🇬🇧 English</option>
+                            <option value="es">🇪🇸 Español</option>
+                            <option value="de">🇩🇪 Deutsch</option>
+                            <option value="pt">🇵🇹 Português</option>
+                        </select>
+                    </div>
+
+                    <!-- Section Aide -->
+                    <div class="help-section" style="margin-bottom: 25px;">
+                        <h3 style="color: #00ff88; margin-bottom: 15px;">📖 Aide / Help</h3>
+                        <div id="help-content-text" style="color: rgba(255,255,255,0.8); line-height: 1.6;">
+                            <!-- Le contenu sera chargé dynamiquement selon la langue -->
+                        </div>
+                    </div>
+
+                    <!-- Section Contact -->
+                    <div class="contact-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <h3 style="color: #00ff88; margin-bottom: 15px;">📞 Contact / Contacto</h3>
+                        <div id="contact-content-text" style="color: rgba(255,255,255,0.8); line-height: 1.6;">
+                            <!-- Le contenu sera chargé dynamiquement selon la langue -->
+                        </div>
+                        <div class="contact-links" style="margin-top: 20px; display: flex; gap: 15px; flex-wrap: wrap;">
+                            <a href="https://www.linkedin.com/in/kossi-victoire-azonoutsou" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: #0077b5; color: white; border-radius: 8px; text-decoration: none;">
+                                <span>🔗</span> LinkedIn (Dev)
+                            </a>
+                            <a href="https://www.facebook.com/kossi.victoire.azonoutsou" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: #1877f2; color: white; border-radius: 8px; text-decoration: none;">
+                                <span>🔗</span> Facebook
+                            </a>
+                            <a href="https://www.tiktok.com/@samvicdev" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: #000000; color: white; border-radius: 8px; text-decoration: none;">
+                                <span>🔗</span> TikTok
+                            </a>
+                        </div>
+                        
+                        <h4 style="color: #00ff88; margin-top: 25px; margin-bottom: 15px;">🤝 Partenaires / Partners</h4>
+                        <div class="contact-links" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <a href="https://www.linkedin.com/in/koffi-brice-aly-933bab353/" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: #0077b5; color: white; border-radius: 8px; text-decoration: none;">
+                                <span>🔗</span> Koffi Brice Aly
+                            </a>
+                            <a href="https://www.linkedin.com/search/results/all/?keywords=Simplon.co&origin=RICH_QUERY_TYPEAHEAD_HISTORY&heroEntityKey=urn%3Ali%3Aorganization%3A3148332&position=0" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: #0077b5; color: white; border-radius: 8px; text-decoration: none;">
+                                <span>🔗</span> Simplon.co
+                            </a>
+                            <a href="https://www.linkedin.com/company/adn-golfe1/posts/?feedView=all" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: #0077b5; color: white; border-radius: 8px; text-decoration: none;">
+                                <span>🔗</span> ADN Golfe
+                            </a>
+                            <a href="https://www.linkedin.com/in/abdou-akim-gbadamassi-70373a183/" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: #0077b5; color: white; border-radius: 8px; text-decoration: none;">
+                                <span>🔗</span> Abdou Akim Gbadamassi
+                            </a>
+                        </div>
+                        
+                        <h4 style="color: #00ff88; margin-top: 25px; margin-bottom: 15px;">🚀 Rejoindre l'équipe / Join the Team</h4>
+                        <div id="join-team-content-text" style="color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 15px;">
+                            <!-- Le contenu sera chargé dynamiquement selon la langue -->
+                        </div>
+                        <div class="contact-links" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <a href="https://www.linkedin.com/in/kossi-victoire-azonoutsou" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: linear-gradient(135deg, #0077b5, #00a0dc); color: white; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                                <span>💼</span> LinkedIn
+                            </a>
+                            <a href="https://www.facebook.com/kossi.victoire.azonoutsou" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: linear-gradient(135deg, #1877f2, #42b72a); color: white; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                                <span>👥</span> Facebook
+                            </a>
+                            <a href="https://www.tiktok.com/@samvicdev" target="_blank" rel="noopener" class="contact-link" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: linear-gradient(135deg, #000000, #25f4ee); color: white; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                                <span>🎵</span> TikTok
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Espace pour futures fonctionnalités -->
 
         </div>

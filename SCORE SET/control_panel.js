@@ -1408,7 +1408,312 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     loadReportHistory();
     initDisplayUrl();
+    changeHelpLanguage(); // Charger le contenu d'aide par défaut
 });
+
+/**
+ * Change la langue de la section Aide & Contact
+ */
+function changeHelpLanguage() {
+    const language = document.getElementById('help-language').value;
+    const helpContent = document.getElementById('help-content-text');
+    const contactContent = document.getElementById('contact-content-text');
+    const joinTeamContent = document.getElementById('join-team-content-text');
+
+    const helpTexts = {
+        fr: `
+            <h4>📋 Présentation de l'application</h4>
+            <p><strong>Scor-Set</strong> est un système d'affichage de scores pour stade qui permet de gérer en temps réel les matchs de football avec un panneau de contrôle et un affichage stade.</p>
+            
+            <h4>🎯 Fonctionnalités principales</h4>
+            <ul>
+                <li><strong>Gestion du score:</strong> Ajoutez ou retirez des buts pour chaque équipe</li>
+                <li><strong>Chronomètre:</strong> Gérez le temps du match avec phases (1ère période, mi-temps, 2ème période, prolongations, fin de match)</li>
+                <li><strong>Effectifs:</strong> Gérez les joueurs, leurs numéros, postes et photos</li>
+                <li><strong>Discipline:</strong> Enregistrez les cartons jaunes et rouges</li>
+                <li><strong>Remplacements:</strong> Gérez les entrées et sorties de joueurs</li>
+                <li><strong>VAR:</strong> Affichez les vérifications VAR et leurs résultats</li>
+                <li><strong>Thèmes:</strong> Personnalisez l'apparence de l'affichage</li>
+                <li><strong>Logos:</strong> Ajoutez les logos des équipes</li>
+            </ul>
+            
+            <h4>⚠️ Ce qu'il faut éviter</h4>
+            <ul>
+                <li>Ne fermez pas le serveur Python pendant l'utilisation</li>
+                <li>Évitez d'utiliser des images trop volumineuses pour les logos/photos</li>
+                <li>Ne modifiez pas les fichiers du système pendant le fonctionnement</li>
+                <li>Évitez de changer de langue pendant un match en cours</li>
+            </ul>
+            
+            <h4>✅ Ce qu'il faut faire</h4>
+            <ul>
+                <li>Configurez les équipes avant de commencer le match</li>
+                <li>Sauvegardez régulièrement la configuration</li>
+                <li>Utilisez le bouton "Réinitialiser le Match" entre deux matchs</li>
+                <li>Ouvrez l'affichage stade dans un nouvel onglet pour un meilleur contrôle</li>
+                <li>Testez les fonctionnalités avant un match officiel</li>
+            </ul>
+            
+            <h4>🔧 Dépannage</h4>
+            <ul>
+                <li><strong>L'affichage ne se met pas à jour:</strong> Vérifiez que le serveur Python est en cours d'exécution</li>
+                <li><strong>Les logos ne s'affichent pas:</strong> Vérifiez le format et la taille de l'image</li>
+                <li><strong>Le chronomètre ne fonctionne pas:</strong> Vérifiez que la phase du match est correctement définie</li>
+            </ul>
+        `,
+        en: `
+            <h4>📋 Application Overview</h4>
+            <p><strong>Scor-Set</strong> is a stadium score display system that allows real-time football match management with a control panel and stadium display.</p>
+            
+            <h4>🎯 Main Features</h4>
+            <ul>
+                <li><strong>Score Management:</strong> Add or remove goals for each team</li>
+                <li><strong>Timer:</strong> Manage match time with phases (1st half, halftime, 2nd half, extra time, full time)</li>
+                <li><strong>Roster:</strong> Manage players, their numbers, positions and photos</li>
+                <li><strong>Discipline:</strong> Record yellow and red cards</li>
+                <li><strong>Substitutions:</strong> Manage player entries and exits</li>
+                <li><strong>VAR:</strong> Display VAR reviews and their results</li>
+                <li><strong>Themes:</strong> Customize the display appearance</li>
+                <li><strong>Logos:</strong> Add team logos</li>
+            </ul>
+            
+            <h4>⚠️ What to Avoid</h4>
+            <ul>
+                <li>Do not close the Python server during use</li>
+                <li>Avoid using too large images for logos/photos</li>
+                <li>Do not modify system files during operation</li>
+                <li>Avoid changing language during an ongoing match</li>
+            </ul>
+            
+            <h4>✅ What to Do</h4>
+            <ul>
+                <li>Configure teams before starting the match</li>
+                <li>Save configuration regularly</li>
+                <li>Use "Reset Match" button between two matches</li>
+                <li>Open stadium display in a new tab for better control</li>
+                <li>Test features before an official match</li>
+            </ul>
+            
+            <h4>🔧 Troubleshooting</h4>
+            <ul>
+                <li><strong>Display not updating:</strong> Check that Python server is running</li>
+                <li><strong>Logos not displaying:</strong> Check image format and size</li>
+                <li><strong>Timer not working:</strong> Check that match phase is correctly set</li>
+            </ul>
+        `,
+        es: `
+            <h4>📋 Resumen de la Aplicación</h4>
+            <p><strong>Scor-Set</strong> es un sistema de visualización de marcadores para estadios que permite la gestión en tiempo real de partidos de fútbol con un panel de control y visualización en el estadio.</p>
+            
+            <h4>🎯 Características Principales</h4>
+            <ul>
+                <li><strong>Gestión de Marcador:</strong> Añade o elimina goles para cada equipo</li>
+                <li><strong>Cronómetro:</strong> Gestiona el tiempo del partido con fases (1er tiempo, medio tiempo, 2do tiempo, tiempo extra, fin del partido)</li>
+                <li><strong>Plantilla:</strong> Gestiona jugadores, sus números, posiciones y fotos</li>
+                <li><strong>Disciplina:</strong> Registra tarjetas amarillas y rojas</li>
+                <li><strong>Sustituciones:</strong> Gestiona entradas y salidas de jugadores</li>
+                <li><strong>VAR:</strong> Muestra revisiones VAR y sus resultados</li>
+                <li><strong>Temas:</strong> Personaliza la apariencia de la visualización</li>
+                <li><strong>Logos:</strong> Añade logos de equipos</li>
+            </ul>
+            
+            <h4>⚠️ Qué Evitar</h4>
+            <ul>
+                <li>No cierres el servidor Python durante el uso</li>
+                <li>Evita usar imágenes demasiado grandes para logos/fotos</li>
+                <li>No modifiques archivos del sistema durante la operación</li>
+                <li>Evita cambiar de idioma durante un partido en curso</li>
+            </ul>
+            
+            <h4>✅ Qué Hacer</h4>
+            <ul>
+                <li>Configura equipos antes de iniciar el partido</li>
+                <li>Guarda la configuración regularmente</li>
+                <li>Usa el botón "Reiniciar Partido" entre dos partidos</li>
+                <li>Abre la visualización del estadio en una nueva pestaña para mejor control</li>
+                <li>Prueba las funciones antes de un partido oficial</li>
+            </ul>
+            
+            <h4>🔧 Solución de Problemas</h4>
+            <ul>
+                <li><strong>Visualización no se actualiza:</strong> Verifica que el servidor Python esté ejecutándose</li>
+                <li><strong>Logos no se muestran:</strong> Verifica el formato y tamaño de la imagen</li>
+                <li><strong>Cronómetro no funciona:</strong> Verifica que la fase del partido esté correctamente configurada</li>
+            </ul>
+        `,
+        de: `
+            <h4>📋 Anwendung Übersicht</h4>
+            <p><strong>Scor-Set</strong> ist ein Stadion-Anzeigesystem für Fußballergebnisse, das die Echtzeitverwaltung von Fußballspielen mit einem Bedienfeld und Stadionanzeige ermöglicht.</p>
+            
+            <h4>🎯 Hauptfunktionen</h4>
+            <ul>
+                <li><strong>Tore verwalten:</strong> Tore für jedes Team hinzufügen oder entfernen</li>
+                <li><strong>Timer:</strong> Spielzeit mit Phasen verwalten (1. Halbzeit, Halbzeitpause, 2. Halbzeit, Verlängerung, Spielende)</li>
+                <li><strong>Kader:</strong> Spieler, ihre Nummern, Positionen und Fotos verwalten</li>
+                <li><strong>Disziplin:</strong> Gelbe und rote Karten aufzeichnen</li>
+                <li><strong>Einwechselungen:</strong> Ein- und Auswechselungen von Spielern verwalten</li>
+                <li><strong>VAR:</strong> VAR-Überprüfungen und deren Ergebnisse anzeigen</li>
+                <li><strong>Designs:</strong> Erscheinungsbild der Anzeige anpassen</li>
+                <li><strong>Logos:</strong> Team-Logos hinzufügen</li>
+            </ul>
+            
+            <h4>⚠¹ Was zu Vermeiden</h4>
+            <ul>
+                <li>Python-Server während der Nutzung nicht schließen</li>
+                <li>Zu große Bilder für Logos/Fotos vermeiden</li>
+                <li>Systemdateien während des Betriebs nicht ändern</li>
+                <li>Sprachwechsel während eines laufenden Spiels vermeiden</li>
+            </ul>
+            
+            <h4>✅ Was zu Tun</h4>
+            <ul>
+                <li>Teams vor Spielbeginn konfigurieren</li>
+                <li>Konfiguration regelmäßig speichern</li>
+                <li>"Spiel zurücksetzen"-Button zwischen zwei Spielen verwenden</li>
+                <li>Stadionanzeige in neuem Tab für bessere Kontrolle öffnen</li>
+                <li>Funktionen vor einem offiziellen Spiel testen</li>
+            </ul>
+            
+            <h4>🔧 Fehlerbehebung</h4>
+            <ul>
+                <li><strong>Anzeige wird nicht aktualisiert:</strong> Prüfen, ob Python-Server läuft</li>
+                <li><strong>Logos werden nicht angezeigt:</strong> Bildformat und -größe prüfen</li>
+                <li><strong>Timer funktioniert nicht:</strong> Prüfen, ob Spielphase korrekt eingestellt ist</li>
+            </ul>
+        `,
+        pt: `
+            <h4>📋 Visão Geral da Aplicação</h4>
+            <p><strong>Scor-Set</strong> é um sistema de exibição de placares para estádios que permite o gerenciamento em tempo real de partidas de futebol com um painel de controle e exibição no estádio.</p>
+            
+            <h4>🎯 Principais Funcionalidades</h4>
+            <ul>
+                <li><strong>Gestão de Placar:</strong> Adicione ou remova gols para cada equipe</li>
+                <li><strong>Cronômetro:</strong> Gerencie o tempo da partida com fases (1º tempo, intervalo, 2º tempo, prorrogação, fim de partida)</li>
+                <li><strong>Elenco:</strong> Gerencie jogadores, seus números, posições e fotos</li>
+                <li><strong>Disciplina:</strong> Registre cartões amarelos e vermelhos</li>
+                <li><strong>Substituições:</strong> Gerencie entradas e saídas de jogadores</li>
+                <li><strong>VAR:</strong> Exiba revisões VAR e seus resultados</li>
+                <li><strong>Temas:</strong> Personalize a aparência da exibição</li>
+                <li><strong>Logos:</strong> Adicione logos das equipes</li>
+            </ul>
+            
+            <h4>⚠️ O Que Evitar</h4>
+            <ul>
+                <li>Não feche o servidor Python durante o uso</li>
+                <li>Evite usar imagens muito grandes para logos/fotos</li>
+                <li>Não modifique arquivos do sistema durante a operação</li>
+                <li>Evite mudar de idioma durante uma partida em andamento</li>
+            </ul>
+            
+            <h4>✅ O Que Fazer</h4>
+            <ul>
+                <li>Configure as equipes antes de iniciar a partida</li>
+                <li>Salve a configuração regularmente</li>
+                <li>Use o botão "Reiniciar Partida" entre duas partidas</li>
+                <li>Abra a exibição do estádio em uma nova aba para melhor controle</li>
+                <li>Teste as funcionalidades antes de uma partida oficial</li>
+            </ul>
+            
+            <h4>🔧 Solução de Problemas</h4>
+            <ul>
+                <li><strong>Exibição não atualiza:</strong> Verifique se o servidor Python está em execução</li>
+                <li><strong>Logos não exibem:</strong> Verifique o formato e tamanho da imagem</li>
+                <li><strong>Cronômetro não funciona:</strong> Verifique se a fase da partida está corretamente definida</li>
+            </ul>
+        `
+    };
+
+    const contactTexts = {
+        fr: `
+            <p>Pour toute question, problème ou suggestion, n'hésitez pas à nous contacter via nos réseaux sociaux ou directement via les liens ci-dessous.</p>
+            <p><strong>Équipe de développement:</strong> Notre équipe est disponible pour vous aider avec toute question technique ou fonctionnelle.</p>
+            <p><strong>Support:</strong> Pour un support rapide, préférez les réseaux sociaux. Pour les questions plus complexes, contactez-nous via LinkedIn.</p>
+        `,
+        en: `
+            <p>For any questions, issues or suggestions, please don't hesitate to contact us via our social networks or directly through the links below.</p>
+            <p><strong>Development Team:</strong> Our team is available to help you with any technical or functional questions.</p>
+            <p><strong>Support:</strong> For quick support, prefer social networks. For more complex questions, contact us via LinkedIn.</p>
+        `,
+        es: `
+            <p>Para cualquier pregunta, problema o sugerencia, no dude en contactarnos a través de nuestras redes sociales o directamente a través de los enlaces a continuación.</p>
+            <p><strong>Equipo de Desarrollo:</strong> Nuestro equipo está disponible para ayudarle con cualquier pregunta técnica o funcional.</p>
+            <p><strong>Soporte:</strong> Para soporte rápido, prefiera las redes sociales. Para preguntas más complejas, contáctenos a través de LinkedIn.</p>
+        `,
+        de: `
+            <p>Für Fragen, Probleme oder Vorschläge zögern Sie bitte nicht, uns über unsere sozialen Netzwerke oder direkt über die untenstehenden Links zu kontaktieren.</p>
+            <p><strong>Entwicklungsteam:</strong> Unser Team steht Ihnen für technische oder funktionale Fragen zur Verfügung.</p>
+            <p><strong>Support:</strong> Für schnellen Support bevorzugen Sie soziale Netzwerke. Für komplexere Fragen kontaktieren Sie uns über LinkedIn.</p>
+        `,
+        pt: `
+            <p>Para qualquer dúvida, problema ou sugestão, não hesite em nos contactar através das nossas redes sociais ou diretamente através dos links abaixo.</p>
+            <p><strong>Equipa de Desenvolvimento:</strong> A nossa equipa está disponível para ajudar com qualquer questão técnica ou funcional.</p>
+            <p><strong>Suporte:</strong> Para suporte rápido, prefira as redes sociais. Para questões mais complexas, contacte-nos através do LinkedIn.</p>
+        `
+    };
+
+    helpContent.innerHTML = helpTexts[language] || helpTexts['fr'];
+    contactContent.innerHTML = contactTexts[language] || contactTexts['fr'];
+    
+    const joinTeamTexts = {
+        fr: `
+            <p><strong>Rejoignez notre équipe !</strong> Nous sommes toujours à la recherche de talents passionnés par la technologie et le développement web.</p>
+            <p>Suivez-nous sur nos différentes plateformes pour:</p>
+            <ul>
+                <li>🔹 Découvrir nos projets en cours</li>
+                <li>🔹 Participer à nos formations et ateliers</li>
+                <li>🔹 Rejoindre notre communauté de développeurs</li>
+                <li>🔹 Collaborer sur des projets innovants</li>
+            </ul>
+            <p><em>Contactez-nous via LinkedIn pour les opportunités de collaboration et de recrutement.</em></p>
+        `,
+        en: `
+            <p><strong>Join our team!</strong> We are always looking for talented people passionate about technology and web development.</p>
+            <p>Follow us on our different platforms to:</p>
+            <ul>
+                <li>🔹 Discover our current projects</li>
+                <li>🔹 Participate in our training and workshops</li>
+                <li>🔹 Join our developer community</li>
+                <li>🔹 Collaborate on innovative projects</li>
+            </ul>
+            <p><em>Contact us via LinkedIn for collaboration and recruitment opportunities.</em></p>
+        `,
+        es: `
+            <p><strong>¡Únete a nuestro equipo!</strong> Siempre buscamos talentos apasionados por la tecnología y el desarrollo web.</p>
+            <p>Síguenos en nuestras diferentes plataformas para:</p>
+            <ul>
+                <li>🔹 Descubrir nuestros proyectos en curso</li>
+                <li>🔹 Participar en nuestros entrenamientos y talleres</li>
+                <li>🔹 Unirte a nuestra comunidad de desarrolladores</li>
+                <li>🔹 Colaborar en proyectos innovadores</li>
+            </ul>
+            <p><em>Contáctanos vía LinkedIn para oportunidades de colaboración y reclutamiento.</em></p>
+        `,
+        de: `
+            <p><strong>Treten Sie unserem Team bei!</strong> Wir suchen immer nach talentierten Menschen, die Leidenschaft für Technologie und Webentwicklung haben.</p>
+            <p>Folgen Sie uns auf unseren verschiedenen Plattformen, um:</p>
+            <ul>
+                <li>🔹 Unsere aktuellen Projekte zu entdecken</li>
+                <li>🔹 An unseren Schulungen und Workshops teilzunehmen</li>
+                <li>🔹 unserer Entwickler-Community beizutreten</li>
+                <li>🔹 An innovativen Projekten zu arbeiten</li>
+            </ul>
+            <p><em>Kontaktieren Sie uns über LinkedIn für Kooperations- und Rekrutierungsmöglichkeiten.</em></p>
+        `,
+        pt: `
+            <p><strong>Junte-se à nossa equipa!</strong> Estamos sempre à procura de talentos apaixonados por tecnologia e desenvolvimento web.</p>
+            <p>Siga-nos nas nossas diferentes plataformas para:</p>
+            <ul>
+                <li>🔹 Descobrir os nossos projetos em curso</li>
+                <li>🔹 Participar nas nossas formações e workshops</li>
+                <li>🔹 Juntar-se à nossa comunidade de programadores</li>
+                <li>🔹 Colaborar em projetos inovadores</li>
+            </ul>
+            <p><em>Contacte-nos via LinkedIn para oportunidades de colaboração e recrutamento.</em></p>
+        `
+    };
+    
+    joinTeamContent.innerHTML = joinTeamTexts[language] || joinTeamTexts['fr'];
+}
 
 /**
  * Ouvre/ferme un accordéon dans la boîte d'options
